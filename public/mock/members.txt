@@ -1,0 +1,16 @@
+# channelId|userId|stav(joined/invited/banned)
+1|1|joined
+1|2|joined
+1|3|joined
+1|4|joined
+1|5|joined
+1|6|joined
+2|1|joined
+2|2|joined
+2|3|joined
+3|3|joined
+3|1|invited
+4|4|joined
+4|5|banned
+5|2|joined
+6|1|joined

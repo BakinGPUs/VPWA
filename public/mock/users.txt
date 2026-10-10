@@ -1,0 +1,7 @@
+# id|meno|priezvisko|nick|email|heslo|stav
+1|Jozef|Mrkvicka|jozko|jozko@stuba.sk|heslo123|online
+2|Eduard|Kovac|ed|ed@stuba.sk|heslo123|online
+3|Lucia|Horvathova|lucia|lucia@stuba.sk|heslo123|dnd
+4|Marek|Balaz|marek|marek@stuba.sk|heslo123|online
+5|Peter|Simko|peto|peto@stuba.sk|heslo123|offline
+6|Tomas|Rypal|trollko|trollko@stuba.sk|heslo123|online

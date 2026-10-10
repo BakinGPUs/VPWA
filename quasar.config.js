@@ -6,7 +6,7 @@ module.exports = configure(function () {
     css: [],
     extras: ['material-icons'],
     build: {
-      target: { node: 'node20' },
+      target: { browser: ['es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1'], node: 'node20' },
       vueRouterMode: 'hash'
     },
     devServer: { open: true },

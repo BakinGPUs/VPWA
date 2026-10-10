@@ -1,0 +1,15 @@
+.DS_Store
+.thumbs.db
+node_modules
+/dist
+/.quasar
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.idea
+.vscode
+*.suo
+*.sw?
+/docs
+src/layouts/MainLayout.vue
+/src/db.js

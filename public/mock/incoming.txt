@@ -1,0 +1,4 @@
+# channelId|userId|text   (spravy co "pridu" po kliknuti na tlacidlo NOVA SPRAVA)
+1|2|@jozko mas hotovy ten prikazovy riadok?
+2|3|zajtra konzultacia o 10:00
+1|4|kto ide na obed?

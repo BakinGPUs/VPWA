@@ -1,6 +1,9 @@
 {
   "name": "yap",
+  "version": "0.0.1",
+  "description": "YAP! chat - VPWA projekt",
   "productName": "YAP!",
+  "private": true,
   "scripts": {
     "dev": "quasar dev",
     "build": "quasar build"

@@ -1,0 +1,7 @@
+# id|nazov|typ(public/private)|adminId|pred kolkymi dnami bola posledna sprava
+1|vseobecne|public|4|0
+2|vpwa-tim|private|1|0
+3|hry|private|3|1
+4|linux|public|4|2
+5|tajny|private|2|1
+6|stary-kanal|public|1|40

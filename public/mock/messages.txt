@@ -1,0 +1,87 @@
+# id|channelId|userId|pred kolkymi minutami|text
+1|1|1|2400|kto ide zajtra na prednasku?
+2|1|6|2370|zajtra je zrusene cvicenie
+3|1|5|2340|idem na kavu
+4|1|4|2310|dobre rano
+5|1|3|2280|ten lab bol brutal
+6|1|2|2250|deadline je v nedelu
+7|1|1|2220|@marek kedy je zapocet?
+8|1|6|2190|ma niekto poznamky?
+9|1|5|2160|@jozko uz si to odovzdal?
+10|1|4|2130|wifi zase pada
+11|1|3|2100|kto ide zajtra na prednasku?
+12|1|2|2070|zajtra je zrusene cvicenie
+13|1|1|2040|idem na kavu
+14|1|6|2010|dobre rano
+15|1|5|1980|ten lab bol brutal
+16|1|4|1950|deadline je v nedelu
+17|1|3|1920|@marek kedy je zapocet?
+18|1|2|1890|ma niekto poznamky?
+19|1|1|1860|@ed uz si to odovzdal?
+20|1|6|1830|wifi zase pada
+21|1|5|1800|kto ide zajtra na prednasku?
+22|1|4|1770|zajtra je zrusene cvicenie
+23|1|3|1740|idem na kavu
+24|1|2|1710|dobre rano
+25|1|1|1680|ten lab bol brutal
+26|1|6|1650|deadline je v nedelu
+27|1|5|1620|@marek kedy je zapocet?
+28|1|4|1590|ma niekto poznamky?
+29|1|3|1560|@jozko uz si to odovzdal?
+30|1|2|1530|wifi zase pada
+31|1|1|1500|kto ide zajtra na prednasku?
+32|1|6|1470|zajtra je zrusene cvicenie
+33|1|5|1440|idem na kavu
+34|1|4|1410|dobre rano
+35|1|3|1380|ten lab bol brutal
+36|1|2|1350|deadline je v nedelu
+37|1|1|1320|@marek kedy je zapocet?
+38|1|6|1290|ma niekto poznamky?
+39|1|5|1260|@jozko uz si to odovzdal?
+40|1|4|1230|wifi zase pada
+41|1|3|1200|kto ide zajtra na prednasku?
+42|1|2|1170|zajtra je zrusene cvicenie
+43|1|1|1140|idem na kavu
+44|1|6|1110|dobre rano
+45|1|5|1080|ten lab bol brutal
+46|1|4|1050|deadline je v nedelu
+47|1|3|1020|@marek kedy je zapocet?
+48|1|2|990|ma niekto poznamky?
+49|1|1|960|@ed uz si to odovzdal?
+50|1|6|930|wifi zase pada
+51|1|5|900|kto ide zajtra na prednasku?
+52|1|4|870|zajtra je zrusene cvicenie
+53|1|3|840|idem na kavu
+54|1|2|810|dobre rano
+55|1|1|780|ten lab bol brutal
+56|1|6|750|deadline je v nedelu
+57|1|5|720|@marek kedy je zapocet?
+58|1|4|690|ma niekto poznamky?
+59|1|3|660|@jozko uz si to odovzdal?
+60|1|2|630|wifi zase pada
+61|1|1|600|kto ide zajtra na prednasku?
+62|1|6|570|zajtra je zrusene cvicenie
+63|1|5|540|idem na kavu
+64|1|4|510|dobre rano
+65|1|3|480|ten lab bol brutal
+66|1|2|450|deadline je v nedelu
+67|1|1|420|@marek kedy je zapocet?
+68|1|6|390|ma niekto poznamky?
+69|1|5|360|@jozko uz si to odovzdal?
+70|1|4|330|wifi zase pada
+71|1|3|300|kto ide zajtra na prednasku?
+72|1|2|270|zajtra je zrusene cvicenie
+73|1|1|240|idem na kavu
+74|1|6|210|dobre rano
+75|1|5|180|ten lab bol brutal
+76|1|4|150|deadline je v nedelu
+77|1|3|120|@marek kedy je zapocet?
+78|1|2|90|ma niekto poznamky?
+79|1|1|60|@ed uz si to odovzdal?
+80|1|6|30|wifi zase pada
+81|2|2|80|urobil som UML
+82|2|3|60|layout je hotovy
+83|2|2|40|@jozko spravis prikazovy riadok?
+84|2|1|20|jasne
+85|4|4|3000|arch btw
+86|6|1|57600|tu uz nikto nepise
