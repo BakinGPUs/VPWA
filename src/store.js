@@ -149,15 +149,12 @@ export function channelMembers (channelId) {
   return store.members.filter(member => member.channel === channelId && member.state !== 'banned')
 }
 
-//ked som offline nove spravy od inych neukazujem
+//ked som offline, nove spravy od inych neukazujem
 export function channelMessages (channelId) {
-  return store.messages.filter(message => {
-    if (message.channel !== channelId) return false
-    if (store.offlineSince && message.time >= store.offlineSince && message.user !== store.me?.id) {
-      return false
-    }
-    return true
-  })
+  return store.messages.filter(message =>
+    message.channel === channelId &&
+    (!store.offlineSince || message.time < store.offlineSince || message.user === store.me.id)
+  )
 }
 
 export function channelTyping (channelId) {
@@ -288,21 +285,22 @@ export function removeExpiredChannels () {
 
 //fake sprava zo servera na test notifikacii
 export function triggerIncomingMessage () {
-  const next = store.incoming.shift() || {
-    channel: store.currentChannel || 1,
-    user: 2,
-    text: `@${store.me.nick} nová správa na otestovanie notifikácií!`
+  var next = store.incoming.shift()
+
+  //ked dojdu spravy z incoming, posle sa tato
+  if (!next) {
+    var channelId = store.currentChannel
+    if (!channelId) channelId = 1
+    next = { channel: channelId, user: 2, text: '@' + store.me.nick + ' nová správa na otestovanie notifikácií!' }
   }
-  const msg = {
-    id: newId(),
-    channel: next.channel,
-    user: next.user,
-    time: Date.now(),
-    text: next.text
-  }
+
+  var now = Date.now()
+  var msg = { id: newId(), channel: next.channel, user: next.user, time: now, text: next.text }
   store.messages.push(msg)
-  const ch = getChannel(next.channel)
-  if (ch) ch.lastMessage = Date.now()
+
+  var channel = getChannel(next.channel)
+  if (channel) channel.lastMessage = now
+
   return msg
 }
 

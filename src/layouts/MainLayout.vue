@@ -543,28 +543,31 @@ export default {
     },
 
     handleMessageNotification (msg) {
-      //appka je visible, netreba
-      if (this.$q.appVisible) return
+      var channel = this.channels.find(item => item.id === msg.channel)
+      var supported = 'Notification' in window && Notification.permission === 'granted'
 
-      //dnd alebo offline
-      if (store.me.status === 'dnd' || store.me.status === 'offline') return
+      //appka musi byt schovana a ja nesmiem byt dnd/offline
+      var canNotify = !this.$q.appVisible && store.me.status === 'online'
 
-      //nie som v kanali
-      const ch = this.channels.find(c => c.id === msg.channel)
-      if (!ch || isInvited(ch.id)) return
+      //musim byt v kanali (nie len pozvany)
+      var inChannel = channel && !isInvited(channel.id)
 
-      //chcem len spravy pre mna
-      if (store.onlyMe && !isMentioned(msg)) return
+      //ked mam zapnute iba pre mna tak musim byt oznaceny
 
-      const sender = getUser(msg.user)
-      const preview = msg.text.length > 50 ? msg.text.substring(0, 47) + '...' : msg.text
+      
+      var forMe = !store.onlyMe || isMentioned(msg)
 
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(`@${sender?.nick || 'Používateľ'} (#${ch.name})`, {
-          body: preview,
-          icon: '/assets/logo.png'
-        })
-      }
+      if (!supported || !canNotify || !inChannel || !forMe) return
+
+      var sender = getUser(msg.user)
+      var name = sender ? sender.nick : 'Používateľ'
+      var text = msg.text
+      if (text.length > 50) text = text.substring(0, 47) + '...'
+
+      new Notification('@' + name + ' (#' + channel.name + ')', {
+        body: text,
+        icon: '/assets/logo.png'
+      })
     },
 
     //nahlad pisania
