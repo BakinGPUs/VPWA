@@ -16,6 +16,21 @@
           </template>
         </q-toolbar-title>
 
+        <!-- Testovacia správa (5s) na demonštráciu notifikácií & AppVisibility -->
+        <q-btn
+          flat
+          dense
+          no-caps
+          color="amber-5"
+          icon="notifications_active"
+          label="Test notifikácie (5s)"
+          class="q-mr-sm gt-xs"
+          @click="scheduleTestMessage"
+        >
+          <q-tooltip>Pošle správu o 5 sekúnd (prepnite na inú kartu na otestovanie notifikácie)</q-tooltip>
+        </q-btn>
+
+        <!-- Zoznam členov kanála -->
         <q-btn
           v-if="channel && !channel.invited"
           flat
@@ -29,6 +44,42 @@
           <q-tooltip>Zoznam členov kanála (/list)</q-tooltip>
         </q-btn>
 
+        <!-- Prepínač stavu používateľa (online / DND / offline) -->
+        <q-btn-dropdown
+          flat
+          dense
+          no-caps
+          :color="statusColor(store.me.status)"
+          class="q-mr-sm"
+        >
+          <template #label>
+            <div class="row items-center no-wrap">
+              <q-icon name="circle" size="10px" class="q-mr-xs" :class="statusColorClass(store.me.status)" />
+              <span class="text-caption text-bold uppercase">{{ store.me.status }}</span>
+            </div>
+          </template>
+          <q-list class="bg-grey-9 text-white">
+            <q-item clickable v-close-popup @click="changeStatus('online')">
+              <q-item-section avatar style="min-width: 28px">
+                <q-icon name="circle" size="10px" class="text-positive" />
+              </q-item-section>
+              <q-item-section>Online</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="changeStatus('dnd')">
+              <q-item-section avatar style="min-width: 28px">
+                <q-icon name="circle" size="10px" class="text-warning" />
+              </q-item-section>
+              <q-item-section>DND (nerušiť)</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="changeStatus('offline')">
+              <q-item-section avatar style="min-width: 28px">
+                <q-icon name="circle" size="10px" class="text-grey-6" />
+              </q-item-section>
+              <q-item-section>Offline</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+
         <span class="text-grey-4 q-mr-sm text-caption">@{{ store.me.nick }}</span>
         <q-btn flat round dense icon="logout" @click="onLogout">
           <q-tooltip>Odhlásiť sa</q-tooltip>
@@ -36,7 +87,7 @@
       </q-toolbar>
     </q-header>
 
-    <!-- Ľavý panel: Zoznam kanálov & správa kanálov -->
+    <!-- Ľavý panel: Kanály & Nastavenia notifikácií -->
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered :width="260" class="yap-drawer column justify-between">
       <div>
         <div class="row items-center justify-between q-pa-sm">
@@ -80,39 +131,77 @@
         </q-list>
 
         <div v-if="channels.length === 0" class="q-pa-md text-grey-6 text-caption text-center">
-          Nie ste členom žiadneho kanála. Vytvorte si nový pomocou tlačidla vyššie alebo napíšte <code>/join nazov</code>.
+          Nie ste členom žiadneho kanála. Vytvorte si nový alebo napíšte <code>/join nazov</code>.
         </div>
       </div>
 
-      <!-- Spodná lišta ľavého panelu: akcie pre aktuálne zvolený kanál -->
-      <div v-if="channel && !channel.invited" class="channel-actions q-pa-sm">
-        <div class="text-caption text-grey-5 q-mb-xs ellipsis">Vybraný kanál: #{{ channel.name }}</div>
-        <div class="row q-gutter-xs">
-          <q-btn
-            size="sm"
-            flat
-            no-caps
-            color="grey-4"
-            icon="exit_to_app"
-            label="Opustiť"
-            class="col"
-            @click="confirmLeave"
-          >
-            <q-tooltip>Zrušiť členstvo (/cancel)</q-tooltip>
-          </q-btn>
-          <q-btn
-            v-if="channel.admin === store.me.id"
-            size="sm"
-            flat
-            no-caps
-            color="negative"
-            icon="delete"
-            label="Zrušiť"
-            class="col"
-            @click="confirmDelete"
-          >
-            <q-tooltip>Zrušiť kanál pre všetkých (/quit)</q-tooltip>
-          </q-btn>
+      <!-- Spodná časť: Notifikácie & akcie vybraného kanála -->
+      <div>
+        <!-- Nastavenia notifikácií -->
+        <div class="q-pa-sm notification-settings">
+          <div class="text-caption text-amber-5 text-bold q-mb-xs">Nastavenia notifikácií</div>
+          <q-toggle
+            v-model="store.onlyMe"
+            dense
+            color="amber-7"
+            label="Iba adresované mne (@)"
+            class="text-caption text-grey-4 q-mb-xs"
+          />
+          <div v-if="notificationPermissionNeeded" class="q-mt-xs">
+            <q-btn
+              size="xs"
+              outline
+              color="amber-5"
+              label="Povoliť notifikácie v prehliadači"
+              class="full-width"
+              no-caps
+              @click="requestNotificationPermission"
+            />
+          </div>
+          <div class="lt-sm q-mt-xs">
+            <q-btn
+              size="xs"
+              flat
+              color="amber-4"
+              icon="notifications"
+              label="Test notifikácie (5s)"
+              class="full-width"
+              no-caps
+              @click="scheduleTestMessage"
+            />
+          </div>
+        </div>
+
+        <!-- Akcie zvoleného kanála -->
+        <div v-if="channel && !channel.invited" class="channel-actions q-pa-sm">
+          <div class="text-caption text-grey-5 q-mb-xs ellipsis">Vybraný kanál: #{{ channel.name }}</div>
+          <div class="row q-gutter-xs">
+            <q-btn
+              size="sm"
+              flat
+              no-caps
+              color="grey-4"
+              icon="exit_to_app"
+              label="Opustiť"
+              class="col"
+              @click="confirmLeave"
+            >
+              <q-tooltip>Zrušiť členstvo (/cancel)</q-tooltip>
+            </q-btn>
+            <q-btn
+              v-if="channel.admin === store.me.id"
+              size="sm"
+              flat
+              no-caps
+              color="negative"
+              icon="delete"
+              label="Zrušiť"
+              class="col"
+              @click="confirmDelete"
+            >
+              <q-tooltip>Zrušiť kanál pre všetkých (/quit)</q-tooltip>
+            </q-btn>
+          </div>
         </div>
       </div>
     </q-drawer>
@@ -166,6 +255,12 @@
     <!-- Hlavné okno so správami -->
     <q-page-container>
       <q-page :style-fn="pageHeight" class="column">
+        <!-- Oznámenie o offline stave -->
+        <q-banner v-if="store.me.status === 'offline'" dense class="bg-grey-9 text-grey-4 text-caption text-center">
+          <q-icon name="cloud_off" size="16px" class="q-mr-xs text-grey-5" />
+          Ste v stave <strong>Offline</strong>. Nové správy sa nezobrazujú. Po prepnutí do Online sa kanály automaticky aktualizujú.
+        </q-banner>
+
         <div v-if="!channel" class="col flex flex-center text-grey-6 text-center q-pa-md">
           <div>
             <div class="text-h6 q-mb-xs">Žiadny otvorený kanál</div>
@@ -209,8 +304,23 @@
       </q-page>
     </q-page-container>
 
-    <!-- Fixný príkazový riadok -->
+    <!-- Fixný príkazový riadok so stavovou lištou písania -->
     <q-footer bordered class="yap-footer">
+      <!-- Stavová lišta: kto aktuálne píše správu (s odkazom na živý náhľad) -->
+      <div v-if="currentTypers.length" class="typing-bar text-caption q-px-xs q-pb-xs row items-center">
+        <q-spinner-dots size="14px" color="amber-5" class="q-mr-xs" />
+        <span class="text-grey-4">
+          <template v-for="(typer, idx) in currentTypers" :key="typer.user">
+            <a href="#" class="typer-link text-amber-5 text-bold" @click.prevent="openTypingPreview(typer)">
+              {{ getUser(typer.user)?.nick }}
+            </a>
+            <span v-if="idx < currentTypers.length - 1">, </span>
+          </template>
+          píše správu...
+          <span class="text-grey-6 text-italic q-ml-xs">(kliknite na meno pre živý náhľad)</span>
+        </span>
+      </div>
+
       <q-input
         v-model="text"
         outlined
@@ -263,14 +373,47 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Dialóg pre ŽIVÝ NÁHĽAD ROZPÍSANEJ SPRÁVY (každá zmena viditeľná v reálnom čase) -->
+    <q-dialog v-model="showTypingDialog" @hide="stopTypingSimulation">
+      <q-card class="bg-grey-9 text-white" style="min-width: 340px; max-width: 480px; border-radius: 16px; border: 1px solid rgba(251, 191, 36, 0.3)">
+        <q-card-section class="row items-center justify-between">
+          <div>
+            <div class="text-subtitle1 text-bold text-amber-5 row items-center">
+              <q-spinner-dots size="16px" class="q-mr-xs" />
+              Živý náhľad rozpísanej správy
+            </div>
+            <div class="text-caption text-grey-4">
+              Od: @{{ activePreviewUser?.nick }} ({{ activePreviewUser?.firstName }} {{ activePreviewUser?.lastName }})
+            </div>
+          </div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <div class="live-preview-box q-pa-md rounded-borders">
+            <span class="preview-text">{{ activePreviewTyper?.text }}</span>
+            <span class="blinking-cursor">|</span>
+          </div>
+          <div class="text-caption text-grey-5 q-mt-sm row items-center">
+            <q-icon name="visibility" size="14px" class="q-mr-xs text-amber-5" />
+            Text sa aktualizuje v reálnom čase ešte pred odoslaním.
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-sm">
+          <q-btn flat label="Zavrieť" color="amber-5" no-caps v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
 <script>
 import {
   store, getUser, myChannels, isInvited, isMentioned, channelMessages, channelMembers,
-  sendMessage, acceptInvite, declineInvite, leaveChannel, deleteChannel,
-  createChannel, executeCommand, logout
+  channelTyping, sendMessage, acceptInvite, declineInvite, leaveChannel, deleteChannel,
+  createChannel, executeCommand, setStatus, triggerIncomingMessage, logout
 } from 'src/store'
 
 const PAGE_SIZE = 20
@@ -285,7 +428,11 @@ export default {
       count: PAGE_SIZE,
       showCreateDialog: false,
       newChannelName: '',
-      newChannelIsPrivate: false
+      newChannelIsPrivate: false,
+      showTypingDialog: false,
+      activePreviewTyper: null,
+      typingIntervalId: null,
+      notificationPermissionNeeded: false
     }
   },
   computed: {
@@ -304,6 +451,12 @@ export default {
     currentMembers () {
       return store.currentChannel ? channelMembers(store.currentChannel) : []
     },
+    currentTypers () {
+      return store.currentChannel ? channelTyping(store.currentChannel) : []
+    },
+    activePreviewUser () {
+      return this.activePreviewTyper ? getUser(this.activePreviewTyper.user) : null
+    },
     membersCountText () {
       return `${this.currentMembers.length} ${this.currentMembers.length === 1 ? 'člen' : (this.currentMembers.length < 5 ? 'členovia' : 'členov')}`
     }
@@ -321,6 +474,10 @@ export default {
       const first = this.channels.find(channel => !isInvited(channel.id))
       if (first) store.currentChannel = first.id
     }
+    this.checkNotificationPermission()
+  },
+  beforeUnmount () {
+    this.stopTypingSimulation()
   },
   methods: {
     getUser,
@@ -333,10 +490,120 @@ export default {
       return { height: (height - offset) + 'px' }
     },
 
+    statusColor (status) {
+      if (status === 'online') return 'positive'
+      if (status === 'dnd') return 'warning'
+      return 'grey-6'
+    },
+
     statusColorClass (status) {
       if (status === 'online') return 'text-positive'
       if (status === 'dnd') return 'text-warning'
       return 'text-grey-6'
+    },
+
+    changeStatus (newStatus) {
+      setStatus(newStatus)
+      this.$q.notify({
+        message: `Váš stav bol zmenený na ${newStatus.toUpperCase()}`,
+        color: this.statusColor(newStatus),
+        timeout: 1500
+      })
+    },
+
+    checkNotificationPermission () {
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        this.notificationPermissionNeeded = true
+      }
+    },
+
+    async requestNotificationPermission () {
+      if ('Notification' in window) {
+        const res = await Notification.requestPermission()
+        if (res === 'granted') {
+          this.notificationPermissionNeeded = false
+          this.$q.notify({ message: 'Notifikácie boli povolené', color: 'positive' })
+        }
+      }
+    },
+
+    // Demonštrácia notifikácie po 5 sekundách:
+    // Splnené podmienky zadania:
+    // 1. Iba ak aplikácia NIE JE visible (App Visibility)
+    // 2. Iba ak stav používateľa NIE JE DND a NIE JE Offline
+    // 3. Ak je zapnuté onlyMe, notifikuje iba správy adresované @nick
+    scheduleTestMessage () {
+      this.$q.notify({
+        message: 'Testovacia správa príde o 5 sekúnd. Prepnite na inú kartu alebo minimalizujte prehliadač!',
+        color: 'amber-8',
+        icon: 'timer',
+        timeout: 4500
+      })
+
+      setTimeout(() => {
+        const msg = triggerIncomingMessage()
+        this.handleMessageNotification(msg)
+      }, 5000)
+    },
+
+    handleMessageNotification (msg) {
+      // Zadanie: Notifikácia sa vystavuje IBA ak aplikácia nie je v stave visible
+      if (this.$q.appVisible) return
+
+      // Zadanie: ak je nastavený DND alebo offline, neprichádzajú notifikácie
+      if (store.me.status === 'dnd' || store.me.status === 'offline') return
+
+      // Iba ak je členom daného kanála
+      const ch = this.channels.find(c => c.id === msg.channel)
+      if (!ch || ch.invited) return
+
+      // Zadanie: používateľ si môže nastaviť notifikácie iba pre správy adresované jemu
+      if (store.onlyMe && !isMentioned(msg)) return
+
+      const sender = getUser(msg.user)
+      const preview = msg.text.length > 50 ? msg.text.substring(0, 47) + '...' : msg.text
+
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(`@${sender?.nick || 'Používateľ'} (#${ch.name})`, {
+          body: preview,
+          icon: '/assets/logo.png'
+        })
+      }
+    },
+
+    // Živý náhľad písania správy
+    openTypingPreview (typer) {
+      this.activePreviewTyper = typer
+      this.showTypingDialog = true
+      this.startTypingSimulation(typer)
+    },
+
+    startTypingSimulation (typer) {
+      this.stopTypingSimulation()
+      const additionalWords = [
+        ' a', ' ešte', ' k', ' tomu', ' som', ' doplnil', ' podporu', ' pre', ' offline', ' režim',
+        ' aj', ' notifikácie', ' podľa', ' zadania', '.'
+      ]
+      let wordIdx = 0
+
+      this.typingIntervalId = setInterval(() => {
+        if (!this.showTypingDialog || !typer) return
+        if (wordIdx < additionalWords.length) {
+          typer.text += additionalWords[wordIdx]
+          wordIdx++
+        } else {
+          // Cyklické dopisovanie pre nepretržitý živý efekt
+          typer.text = 'ja si myslím, že ten deadline posunú, ale ešte to neoverili...'
+          wordIdx = 0
+        }
+      }, 350)
+    },
+
+    stopTypingSimulation () {
+      if (this.typingIntervalId) {
+        clearInterval(this.typingIntervalId)
+        this.typingIntervalId = null
+      }
     },
 
     loadOlder (index, done) {
@@ -484,9 +751,50 @@ export default {
   font-weight: 700;
 }
 
+.notification-settings {
+  border-top: 1px solid rgba(251, 191, 36, 0.15);
+  background: rgba(0, 0, 0, 0.15);
+}
+
 .channel-actions {
   border-top: 1px solid rgba(251, 191, 36, 0.15);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.typing-bar {
+  border-bottom: 1px solid rgba(251, 191, 36, 0.15);
+  margin-bottom: 6px;
+}
+
+.typer-link {
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.typer-link:hover {
+  color: #f59e0b;
+}
+
+.live-preview-box {
+  background: #161920;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  min-height: 80px;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.blinking-cursor {
+  animation: blink 1s step-start infinite;
+  color: #fbbf24;
+  font-weight: bold;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
 }
 
 .invite-card {

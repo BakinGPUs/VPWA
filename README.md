@@ -19,3 +19,16 @@ všetky dáta sú statické v `src/store.js`, po refreshi sa všetko resetne
 - `/list` – zoznam členov aktuálneho kanála (otvorí aj bočný panel členov)
 - `/cancel` – zrušenie členstva v kanáli (ak odíde správca, kanál zaniká)
 - `/quit` – zrušenie kanála správcom
+
+### Funkcionality a funkcie:
+- **Používateľské stavy**: Online, DND (nerušiť - bez notifikácií), Offline (správy sa nezobrazujú, po prepnutí do online sa kanály automaticky aktualizujú).
+- **Notifikácie**:
+  - Vystavujú sa iba v prípade, ak aplikácia nie je v stave visible (`$q.appVisible`).
+  - Obsahujú odosielateľa a časť textu správy.
+  - Nastavenie pre notifikácie iba správ adresovaných používateľovi (`@nick`).
+  - Tlačidlo *"Test notifikácie (5s)"* v hlavičke odošle testovaciu správu po 5 sekundách (umožňuje prepnúť kartu a otestovať správanie).
+- **Písanie v reálnom čase**:
+  - V stavovej lište sa zobrazuje informácia o tom, kto aktuálne píše správu (napr. *ed píše správu...*).
+  - Po kliknutí na nick sa otvorí živý dialóg s náhľadom rozpísaného textu v reálnom čase.
+- **Dátový model UML**:
+  - Nachádza sa v `docs/datovy-model.puml` a `docs/datovy-model.png`.

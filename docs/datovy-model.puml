@@ -1,0 +1,49 @@
+@startuml
+hide circle
+
+class User {
+  id
+  firstName
+  lastName
+  nick
+  email
+  password
+  status
+}
+
+class Channel {
+  id
+  name
+  type
+  admin
+  lastMessage
+}
+
+class Member {
+  channel
+  user
+  state
+}
+
+class Message {
+  id
+  channel
+  user
+  text
+  time
+}
+
+class Kick {
+  channel
+  user
+  by
+}
+
+User "1" -- "*" Member
+Channel "1" -- "*" Member
+Channel "1" -- "*" Message
+User "1" -- "*" Message
+User "1" -- "*" Channel : admin
+Channel "1" -- "*" Kick
+User "1" -- "*" Kick
+@enduml

@@ -55,6 +55,20 @@ const kicks = [
   { channel: 1, user: 6, by: 3 }
 ]
 
+// Rozpísané správy v reálnom čase
+const typing = [
+  { channel: 1, user: 2, text: 'ja si myslím, že ten deadline posunú, ale ešte to neoverili...' },
+  { channel: 2, user: 3, text: 'hotovo, nahrala som nový commit' }
+]
+
+// Simulované prichádzajúce správy (napr. na otestovanie notifikácie)
+const incoming = [
+  { channel: 1, user: 2, text: '@jozko máš hotový ten príkazový riadok?' },
+  { channel: 2, user: 3, text: 'zajtra konzultácia o 10:00' },
+  { channel: 1, user: 4, text: 'kto ide na obed?' },
+  { channel: 1, user: 6, text: 'vyskúšajte notifikácie' }
+]
+
 const messages = [
   { id: 81, channel: 2, user: 2, time: now - 80 * MINUTE, text: 'urobil som UML' },
   { id: 82, channel: 2, user: 3, time: now - 60 * MINUTE, text: 'layout je hotový' },
@@ -90,8 +104,12 @@ export const store = reactive({
   members,
   messages,
   kicks,
+  typing,
+  incoming,
   me: null,
-  currentChannel: null
+  currentChannel: null,
+  onlyMe: false, // notifikácie iba pre správy adresované používateľovi (@nick)
+  offlineSince: 0 // čas prechodu do offline; ak > 0, nové správy sa zatiaľ nezobrazujú
 })
 
 let lastId = 1000
@@ -138,8 +156,21 @@ export function channelMembers (channelId) {
   return store.members.filter(member => member.channel === channelId && member.state !== 'banned')
 }
 
+// Správy kanála s podporou offline režimu:
+// Keď je nastavený offline stav, správy prichádzajúce po prechode do offline sa nezobrazujú.
+// Po prepnutí do online sa kanály automaticky aktualizujú.
 export function channelMessages (channelId) {
-  return store.messages.filter(message => message.channel === channelId)
+  return store.messages.filter(message => {
+    if (message.channel !== channelId) return false
+    if (store.offlineSince && message.time >= store.offlineSince && message.user !== store.me?.id) {
+      return false
+    }
+    return true
+  })
+}
+
+export function channelTyping (channelId) {
+  return store.typing.filter(t => t.channel === channelId && t.user !== store.me?.id)
 }
 
 export function isMentioned (message) {
@@ -147,7 +178,7 @@ export function isMentioned (message) {
 }
 
 // ---------------------------------------------------------------------------
-// Akcie používateľa (auth & správy)
+// Akcie používateľa (auth, stav & správy)
 // ---------------------------------------------------------------------------
 
 export function login (emailOrNick, password) {
@@ -157,6 +188,8 @@ export function login (emailOrNick, password) {
   if (!user) return 'Zlý email alebo heslo'
 
   store.me = user
+  store.me.status = 'online'
+  store.offlineSince = 0
   store.currentChannel = null
   removeExpiredChannels()
   return null
@@ -170,6 +203,7 @@ export function register (firstName, lastName, nick, email, password) {
   const user = { id: newId(), firstName, lastName, nick, email, password, status: 'online' }
   store.users.push(user)
   store.me = user
+  store.offlineSince = 0
   store.currentChannel = null
   return null
 }
@@ -177,9 +211,23 @@ export function register (firstName, lastName, nick, email, password) {
 export function logout () {
   store.me = null
   store.currentChannel = null
+  store.offlineSince = 0
+}
+
+export function setStatus (status) {
+  if (!store.me) return
+  store.me.status = status
+  if (status === 'offline') {
+    store.offlineSince = Date.now()
+  } else {
+    store.offlineSince = 0
+  }
 }
 
 export function sendMessage (text) {
+  if (store.me.status === 'offline') {
+    return 'Ste v stave offline. Pre odosielanie správ zmeňte svoj stav na online.'
+  }
   const channel = getChannel(store.currentChannel)
   if (!channel || isInvited(channel.id)) return 'Nie ste členom tohto kanála'
 
@@ -226,6 +274,7 @@ export function deleteChannel (channelId) {
   store.members = store.members.filter(member => member.channel !== channelId)
   store.messages = store.messages.filter(message => message.channel !== channelId)
   store.kicks = store.kicks.filter(kick => kick.channel !== channelId)
+  store.typing = store.typing.filter(t => t.channel !== channelId)
   if (store.currentChannel === channelId) {
     store.currentChannel = null
   }
@@ -235,7 +284,6 @@ export function leaveChannel (channelId) {
   const channel = getChannel(channelId)
   if (!channel) return
   if (channel.admin === store.me.id) {
-    // Ak správca opustí kanál, kanál zaniká
     deleteChannel(channelId)
   } else {
     store.members = store.members.filter(member => !(member.channel === channelId && member.user === store.me.id))
@@ -249,6 +297,26 @@ export function leaveChannel (channelId) {
 export function removeExpiredChannels () {
   const expired = store.channels.filter(channel => Date.now() - channel.lastMessage > 30 * DAY)
   expired.forEach(channel => deleteChannel(channel.id))
+}
+
+// Vyvolanie testovacej správy (simulácia príchodu správy z iného zdroja)
+export function triggerIncomingMessage () {
+  const next = store.incoming.shift() || {
+    channel: store.currentChannel || 1,
+    user: 2,
+    text: `@${store.me.nick} nová správa na otestovanie notifikácií!`
+  }
+  const msg = {
+    id: newId(),
+    channel: next.channel,
+    user: next.user,
+    time: Date.now(),
+    text: next.text
+  }
+  store.messages.push(msg)
+  const ch = getChannel(next.channel)
+  if (ch) ch.lastMessage = Date.now()
+  return msg
 }
 
 // Spracovanie príkazov z fixného príkazového riadka
@@ -300,7 +368,7 @@ export function executeCommand (rawText) {
     // Verejný kanál – ľubovoľný používateľ sa môže pridať
     store.members.push({ channel: existing.id, user: store.me.id, state: 'joined' })
     store.currentChannel = existing.id
-    return { ok: true, message: `Pridali ste sa do kanála #${existing.name}.` }
+    return { ok: true, message: `Pripojili ste sa do kanála #${existing.name}.` }
   }
 
   if (!channel) return { ok: false, message: 'Nie ste v žiadnom kanáli.' }
