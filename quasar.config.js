@@ -11,6 +11,7 @@ module.exports = configure(function () {
     },
     devServer: { open: true },
     framework: {
+      config: { dark: true },
       plugins: ['Notify', 'Dialog', 'AppVisibility']
     }
   }

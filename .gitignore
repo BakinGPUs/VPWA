@@ -10,6 +10,3 @@ yarn-error.log*
 .vscode
 *.suo
 *.sw?
-/docs
-src/layouts/MainLayout.vue
-/src/db.js

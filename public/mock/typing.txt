@@ -1,2 +1,0 @@
-# channelId|userId|rozpisany text
-1|2|ja si myslim ze ten deadline posunu ale

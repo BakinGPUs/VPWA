@@ -121,8 +121,7 @@
       <form v-else @submit.prevent="login" class="form-content">
         <q-input
           v-model="email"
-          label="Email"
-          type="email"
+          label="Email alebo nick"
           dark
           outlined
           dense
@@ -175,7 +174,7 @@
 </template>
 
 <script>
-import { db, loadData } from 'src/db'
+import { login, register } from 'src/store'
 
 export default {
   data () {
@@ -188,32 +187,15 @@ export default {
       password: 'heslo123'
     }
   },
-  mounted () {
-    loadData()
-  },
   methods: {
     login () {
-      var found = db.users.find(user => (user.email == this.email || user.nick == this.email) && user.password == this.password)
-      if (!found) {
-        this.$q.notify({ message: 'zly email alebo heslo', color: 'red' })
-        return
-      }
-      db.me = found
-      found.status = 'online'
+      const error = login(this.email, this.password)
+      if (error) return this.$q.notify({ message: error, color: 'negative' })
       this.$router.push('/')
     },
     register () {
-      if (!this.firstName || !this.lastName || !this.nick || !this.email || !this.password) {
-        this.$q.notify({ message: 'vypln vsetky polia', color: 'red' })
-        return
-      }
-      if (db.users.find(user => user.nick == this.nick || user.email == this.email)) {
-        this.$q.notify({ message: 'nick alebo email uz existuje', color: 'red' })
-        return
-      }
-      var newUser = { id: Date.now(), firstName: this.firstName, lastName: this.lastName, nick: this.nick, email: this.email, password: this.password, status: 'online' }
-      db.users.push(newUser)
-      db.me = newUser
+      const error = register(this.firstName, this.lastName, this.nick, this.email, this.password)
+      if (error) return this.$q.notify({ message: error, color: 'negative' })
       this.$router.push('/')
     }
   }
