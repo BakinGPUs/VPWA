@@ -32,7 +32,7 @@
 
         <!-- Zoznam členov kanála -->
         <q-btn
-          v-if="channel && !channel.invited"
+          v-if="channel && !isInvited(channel.id)"
           flat
           dense
           no-caps
@@ -173,7 +173,7 @@
         </div>
 
         <!-- Akcie zvoleného kanála -->
-        <div v-if="channel && !channel.invited" class="channel-actions q-pa-sm">
+        <div v-if="channel && !isInvited(channel.id)" class="channel-actions q-pa-sm">
           <div class="text-caption text-grey-5 q-mb-xs ellipsis">Vybraný kanál: #{{ channel.name }}</div>
           <div class="row q-gutter-xs">
             <q-btn
@@ -555,7 +555,7 @@ export default {
 
       // Iba ak je členom daného kanála
       const ch = this.channels.find(c => c.id === msg.channel)
-      if (!ch || ch.invited) return
+      if (!ch || isInvited(ch.id)) return
 
       // Zadanie: používateľ si môže nastaviť notifikácie iba pre správy adresované jemu
       if (store.onlyMe && !isMentioned(msg)) return
