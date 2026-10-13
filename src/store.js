@@ -1,5 +1,4 @@
-// Jediné miesto, kde žijú dáta aplikácie.
-// Všetko je statické (v pamäti) – po refreshi stránky sa dáta vrátia do pôvodného stavu.
+//data appky, vsetko v pamati, po refreshi sa resetne
 
 import { reactive } from 'vue'
 
@@ -7,9 +6,7 @@ const MINUTE = 60 * 1000
 const DAY = 24 * 60 * MINUTE
 const now = Date.now()
 
-// ---------------------------------------------------------------------------
-// Statické (mock) dáta
-// ---------------------------------------------------------------------------
+//mock data
 
 const users = [
   { id: 1, firstName: 'Jozef', lastName: 'Mrkvička', nick: 'jozko', email: 'jozko@stuba.sk', password: 'heslo123', status: 'online' },
@@ -20,17 +17,17 @@ const users = [
   { id: 6, firstName: 'Tomáš', lastName: 'Rypal', nick: 'trollko', email: 'trollko@stuba.sk', password: 'heslo123', status: 'online' }
 ]
 
-// type: 'public' | 'private', admin: id používateľa, ktorý kanál vytvoril
+//type public/private, admin = kto vytvoril kanal
 const channels = [
   { id: 1, name: 'vseobecne', type: 'public', admin: 4, lastMessage: now },
   { id: 2, name: 'vpwa-tim', type: 'private', admin: 1, lastMessage: now },
   { id: 3, name: 'hry', type: 'private', admin: 3, lastMessage: now - 1 * DAY },
   { id: 4, name: 'linux', type: 'public', admin: 4, lastMessage: now - 2 * DAY },
   { id: 5, name: 'tajny', type: 'private', admin: 2, lastMessage: now - 1 * DAY },
-  { id: 6, name: 'stary-kanal', type: 'public', admin: 1, lastMessage: now - 40 * DAY } // po 30 dňoch neaktivity zaniká
+  { id: 6, name: 'stary-kanal', type: 'public', admin: 1, lastMessage: now - 40 * DAY } //starsi ako 30 dni, zmaze sa
 ]
 
-// Členstvo používateľa v kanáli. state: 'joined' | 'invited' | 'banned'
+//state joined / invited / banned
 const members = [
   { channel: 1, user: 1, state: 'joined' },
   { channel: 1, user: 2, state: 'joined' },
@@ -49,19 +46,19 @@ const members = [
   { channel: 6, user: 1, state: 'joined' }
 ]
 
-// Hlasy za vyhodenie vo verejných kanáloch: { channel, user (koho), by (kto hlasoval) }
+//kick hlasy - user je koho kickuju, by je kto hlasoval
 const kicks = [
   { channel: 1, user: 6, by: 2 },
   { channel: 1, user: 6, by: 3 }
 ]
 
-// Rozpísané správy v reálnom čase
+//kto prave pise
 const typing = [
   { channel: 1, user: 2, text: 'ja si myslím, že ten deadline posunú, ale ešte to neoverili...' },
   { channel: 2, user: 3, text: 'hotovo, nahrala som nový commit' }
 ]
 
-// Simulované prichádzajúce správy (napr. na otestovanie notifikácie)
+//spravy co pridu po kliknuti na test notifikacie
 const incoming = [
   { channel: 1, user: 2, text: '@jozko máš hotový ten príkazový riadok?' },
   { channel: 2, user: 3, text: 'zajtra konzultácia o 10:00' },
@@ -78,7 +75,7 @@ const messages = [
   { id: 86, channel: 6, user: 1, time: now - 40 * DAY, text: 'tu už nikto nepíše' }
 ]
 
-// Staršie správy pre #vseobecne na ukážku infinite scrollu
+//nejake stare spravy do vseobecne aby bolo co scrollovat
 const smallTalk = [
   'kto ide zajtra na prednášku?', 'zajtra je zrušené cvičenie', 'idem na kávu', 'dobré ráno',
   'ten lab bol brutal', 'deadline je v nedeľu', '@marek kedy je zápočet?', 'má niekto poznámky?',
@@ -94,9 +91,7 @@ for (let i = 0; i < 80; i++) {
   })
 }
 
-// ---------------------------------------------------------------------------
-// Reaktívny stav
-// ---------------------------------------------------------------------------
+//stav
 
 export const store = reactive({
   users,
@@ -108,8 +103,8 @@ export const store = reactive({
   incoming,
   me: null,
   currentChannel: null,
-  onlyMe: false, // notifikácie iba pre správy adresované používateľovi (@nick)
-  offlineSince: 0 // čas prechodu do offline; ak > 0, nové správy sa zatiaľ nezobrazujú
+  onlyMe: false, //notifikacie iba ked ma niekto oznaci
+  offlineSince: 0 //kedy sa dal offline, 0 = nie je offline
 })
 
 let lastId = 1000
@@ -118,9 +113,7 @@ function newId () {
   return lastId
 }
 
-// ---------------------------------------------------------------------------
-// Pomocné funkcie (čítanie)
-// ---------------------------------------------------------------------------
+//helpery
 
 export function getUser (id) {
   return store.users.find(user => user.id === id)
@@ -143,7 +136,7 @@ export function isInvited (channelId) {
   return member !== undefined && member.state === 'invited'
 }
 
-// Kanály, kde je používateľ členom alebo pozvaný. Pozvánky sú na vrchu.
+//kanaly kde som clen alebo pozvany, pozvanky idu hore
 export function myChannels () {
   const result = store.channels.filter(channel => {
     const member = getMember(channel.id, store.me.id)
@@ -156,9 +149,7 @@ export function channelMembers (channelId) {
   return store.members.filter(member => member.channel === channelId && member.state !== 'banned')
 }
 
-// Správy kanála s podporou offline režimu:
-// Keď je nastavený offline stav, správy prichádzajúce po prechode do offline sa nezobrazujú.
-// Po prepnutí do online sa kanály automaticky aktualizujú.
+//ked som offline nove spravy od inych neukazujem
 export function channelMessages (channelId) {
   return store.messages.filter(message => {
     if (message.channel !== channelId) return false
@@ -177,9 +168,7 @@ export function isMentioned (message) {
   return message.text.includes('@' + store.me.nick)
 }
 
-// ---------------------------------------------------------------------------
-// Akcie používateľa (auth, stav & správy)
-// ---------------------------------------------------------------------------
+//login, register, stav, spravy
 
 export function login (emailOrNick, password) {
   const user = store.users.find(user =>
@@ -246,9 +235,7 @@ export function declineInvite (channelId) {
   if (store.currentChannel === channelId) store.currentChannel = null
 }
 
-// ---------------------------------------------------------------------------
-// Správa kanálov & Príkazy
-// ---------------------------------------------------------------------------
+//kanaly a prikazy
 
 export function createChannel (name, isPrivate = false) {
   name = name.trim().toLowerCase()
@@ -293,13 +280,13 @@ export function leaveChannel (channelId) {
   }
 }
 
-// Kanál bez novej správy viac ako 30 dní prestáva existovať (názov sa uvoľní)
+//kanal bez spravy 30 dni zanika
 export function removeExpiredChannels () {
   const expired = store.channels.filter(channel => Date.now() - channel.lastMessage > 30 * DAY)
   expired.forEach(channel => deleteChannel(channel.id))
 }
 
-// Vyvolanie testovacej správy (simulácia príchodu správy z iného zdroja)
+//fake sprava zo servera na test notifikacii
 export function triggerIncomingMessage () {
   const next = store.incoming.shift() || {
     channel: store.currentChannel || 1,
@@ -319,7 +306,7 @@ export function triggerIncomingMessage () {
   return msg
 }
 
-// Spracovanie príkazov z fixného príkazového riadka
+//prikazy z prikazoveho riadku
 export function executeCommand (rawText) {
   const parts = rawText.trim().split(/\s+/)
   const cmd = parts[0].toLowerCase()
@@ -365,7 +352,7 @@ export function executeCommand (rawText) {
       return { ok: false, message: `Kanál #${existing.name} je súkromný. Pridať vás môže iba správca.` }
     }
 
-    // Verejný kanál – ľubovoľný používateľ sa môže pridať
+    //public kanal, moze sa pridat hocikto
     store.members.push({ channel: existing.id, user: store.me.id, state: 'joined' })
     store.currentChannel = existing.id
     return { ok: true, message: `Pripojili ste sa do kanála #${existing.name}.` }
@@ -438,7 +425,7 @@ export function executeCommand (rawText) {
       return { ok: true, message: `Správca natrvalo zabanoval používateľa @${target.nick}.` }
     }
 
-    // Bežný člen hlasuje: každý člen môže hlasovať iba raz, pri 3 unikátnych hlasoch trvalý ban
+    //kazdy moze hlasovat len raz, 3 hlasy = ban
     const alreadyVoted = store.kicks.some(k => k.channel === channel.id && k.user === target.id && k.by === store.me.id)
     if (alreadyVoted) {
       const currentVotes = new Set(store.kicks.filter(k => k.channel === channel.id && k.user === target.id).map(k => k.by)).size

@@ -12,7 +12,7 @@ export default route(function () {
     ]
   })
 
-  // Neprihlásený používateľ sa dostane iba na /login
+  //bez loginu len na /login
   router.beforeEach(to => {
     if (to.path !== '/login' && !store.me) return '/login'
   })

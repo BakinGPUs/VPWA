@@ -1,6 +1,6 @@
 <template>
   <q-layout v-if="store.me" view="hHh LpR fFf" class="yap-layout">
-    <!-- Hlavička -->
+    <!--hlavicka-->
     <q-header bordered class="yap-header">
       <q-toolbar>
         <q-btn flat round dense icon="menu" class="q-mr-sm" @click="leftDrawerOpen = !leftDrawerOpen">
@@ -16,7 +16,7 @@
           </template>
         </q-toolbar-title>
 
-        <!-- Testovacia správa (5s) na demonštráciu notifikácií & AppVisibility -->
+        <!--test notifikacie, sprava pride o 5s-->
         <q-btn
           flat
           dense
@@ -30,7 +30,7 @@
           <q-tooltip>Pošle správu o 5 sekúnd (prepnite na inú kartu na otestovanie notifikácie)</q-tooltip>
         </q-btn>
 
-        <!-- Zoznam členov kanála -->
+        <!--clenovia-->
         <q-btn
           v-if="channel && !isInvited(channel.id)"
           flat
@@ -44,7 +44,7 @@
           <q-tooltip>Zoznam členov kanála (/list)</q-tooltip>
         </q-btn>
 
-        <!-- Prepínač stavu používateľa (online / DND / offline) -->
+        <!--stav online/dnd/offline-->
         <q-btn-dropdown
           flat
           dense
@@ -87,7 +87,7 @@
       </q-toolbar>
     </q-header>
 
-    <!-- Ľavý panel: Kanály & Nastavenia notifikácií -->
+    <!--lavy panel - kanaly-->
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered :width="260" class="yap-drawer column justify-between">
       <div>
         <div class="row items-center justify-between q-pa-sm">
@@ -135,9 +135,9 @@
         </div>
       </div>
 
-      <!-- Spodná časť: Notifikácie & akcie vybraného kanála -->
+      <!--spodok panela-->
       <div>
-        <!-- Nastavenia notifikácií -->
+        <!--notifikacie-->
         <div class="q-pa-sm notification-settings">
           <div class="text-caption text-amber-5 text-bold q-mb-xs">Nastavenia notifikácií</div>
           <q-toggle
@@ -172,7 +172,7 @@
           </div>
         </div>
 
-        <!-- Akcie zvoleného kanála -->
+        <!--akcie kanala-->
         <div v-if="channel && !isInvited(channel.id)" class="channel-actions q-pa-sm">
           <div class="text-caption text-grey-5 q-mb-xs ellipsis">Vybraný kanál: #{{ channel.name }}</div>
           <div class="row q-gutter-xs">
@@ -206,7 +206,7 @@
       </div>
     </q-drawer>
 
-    <!-- Pravý panel: Zoznam členov kanála (/list) -->
+    <!--pravy panel - clenovia (/list)-->
     <q-drawer v-model="rightDrawerOpen" side="right" bordered :width="240" class="yap-drawer">
       <div class="row items-center justify-between q-pa-sm">
         <div class="drawer-title">Členovia kanála</div>
@@ -252,10 +252,10 @@
       </div>
     </q-drawer>
 
-    <!-- Hlavné okno so správami -->
+    <!--spravy-->
     <q-page-container>
       <q-page :style-fn="pageHeight" class="column">
-        <!-- Oznámenie o offline stave -->
+        <!--offline banner-->
         <q-banner v-if="store.me.status === 'offline'" dense class="bg-grey-9 text-grey-4 text-caption text-center">
           <q-icon name="cloud_off" size="16px" class="q-mr-xs text-grey-5" />
           Ste v stave <strong>Offline</strong>. Nové správy sa nezobrazujú. Po prepnutí do Online sa kanály automaticky aktualizujú.
@@ -304,9 +304,9 @@
       </q-page>
     </q-page-container>
 
-    <!-- Fixný príkazový riadok so stavovou lištou písania -->
+    <!--prikazovy riadok-->
     <q-footer bordered class="yap-footer">
-      <!-- Stavová lišta: kto aktuálne píše správu (s odkazom na živý náhľad) -->
+      <!--kto pise-->
       <div v-if="currentTypers.length" class="typing-bar text-caption q-px-xs q-pb-xs row items-center">
         <q-spinner-dots size="14px" color="amber-5" class="q-mr-xs" />
         <span class="text-grey-4">
@@ -339,7 +339,7 @@
       </q-input>
     </q-footer>
 
-    <!-- Dialóg na vytvorenie nového kanála -->
+    <!--novy kanal dialog-->
     <q-dialog v-model="showCreateDialog">
       <q-card class="bg-grey-9 text-white" style="min-width: 320px; border-radius: 16px; border: 1px solid rgba(251, 191, 36, 0.22)">
         <q-card-section>
@@ -374,7 +374,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- Dialóg pre ŽIVÝ NÁHĽAD ROZPÍSANEJ SPRÁVY (každá zmena viditeľná v reálnom čase) -->
+    <!--nahlad rozpisanej spravy-->
     <q-dialog v-model="showTypingDialog" @hide="stopTypingSimulation">
       <q-card class="bg-grey-9 text-white" style="min-width: 340px; max-width: 480px; border-radius: 16px; border: 1px solid rgba(251, 191, 36, 0.3)">
         <q-card-section class="row items-center justify-between">
@@ -527,11 +527,7 @@ export default {
       }
     },
 
-    // Demonštrácia notifikácie po 5 sekundách:
-    // Splnené podmienky zadania:
-    // 1. Iba ak aplikácia NIE JE visible (App Visibility)
-    // 2. Iba ak stav používateľa NIE JE DND a NIE JE Offline
-    // 3. Ak je zapnuté onlyMe, notifikuje iba správy adresované @nick
+    //po 5s pride sprava, notifikacia len ked appka nie je visible, nie som dnd/offline a ked mam zapnute iba pre mna tak len ked ma oznacia
     scheduleTestMessage () {
       this.$q.notify({
         message: 'Testovacia správa príde o 5 sekúnd. Prepnite na inú kartu alebo minimalizujte prehliadač!',
@@ -547,17 +543,17 @@ export default {
     },
 
     handleMessageNotification (msg) {
-      // Zadanie: Notifikácia sa vystavuje IBA ak aplikácia nie je v stave visible
+      //appka je visible, netreba
       if (this.$q.appVisible) return
 
-      // Zadanie: ak je nastavený DND alebo offline, neprichádzajú notifikácie
+      //dnd alebo offline
       if (store.me.status === 'dnd' || store.me.status === 'offline') return
 
-      // Iba ak je členom daného kanála
+      //nie som v kanali
       const ch = this.channels.find(c => c.id === msg.channel)
       if (!ch || isInvited(ch.id)) return
 
-      // Zadanie: používateľ si môže nastaviť notifikácie iba pre správy adresované jemu
+      //chcem len spravy pre mna
       if (store.onlyMe && !isMentioned(msg)) return
 
       const sender = getUser(msg.user)
@@ -571,7 +567,7 @@ export default {
       }
     },
 
-    // Živý náhľad písania správy
+    //nahlad pisania
     openTypingPreview (typer) {
       this.activePreviewTyper = typer
       this.showTypingDialog = true
@@ -592,7 +588,7 @@ export default {
           typer.text += additionalWords[wordIdx]
           wordIdx++
         } else {
-          // Cyklické dopisovanie pre nepretržitý živý efekt
+          //znova od zaciatku
           typer.text = 'ja si myslím, že ten deadline posunú, ale ešte to neoverili...'
           wordIdx = 0
         }
