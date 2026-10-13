@@ -812,7 +812,6 @@ export default {
 
 .message-mention {
   background: rgba(251, 191, 36, 0.1);
-  border-left-color: #fbbf24;
 }
 
 .message-nick {
