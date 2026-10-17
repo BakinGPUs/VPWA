@@ -10,9 +10,9 @@ const now = Date.now()
 
 const users = [
   { id: 1, firstName: 'Jozef', lastName: 'Mrkvička', nick: 'jozko', email: 'jozko@stuba.sk', password: 'heslo123', status: 'online' },
-  { id: 2, firstName: 'Eduard', lastName: 'Kováč', nick: 'ed', email: 'ed@stuba.sk', password: 'heslo123', status: 'online' },
+  { id: 2, firstName: 'Eduard', lastName: 'Kováč', nick: 'peterbondra', email: 'ed@stuba.sk', password: 'heslo123', status: 'online' },
   { id: 3, firstName: 'Lucia', lastName: 'Horváthová', nick: 'lucia', email: 'lucia@stuba.sk', password: 'heslo123', status: 'dnd' },
-  { id: 4, firstName: 'Marek', lastName: 'Baláž', nick: 'marek', email: 'marek@stuba.sk', password: 'heslo123', status: 'online' },
+  { id: 4, firstName: 'Marek', lastName: 'Baláž', nick: 'ludovahudbastanabalaza', email: 'marek@stuba.sk', password: 'heslo123', status: 'online' },
   { id: 5, firstName: 'Peter', lastName: 'Šimko', nick: 'peto', email: 'peto@stuba.sk', password: 'heslo123', status: 'offline' },
   { id: 6, firstName: 'Tomáš', lastName: 'Rypal', nick: 'trollko', email: 'trollko@stuba.sk', password: 'heslo123', status: 'online' }
 ]
