@@ -2,18 +2,25 @@
   <q-layout v-if="store.me" view="hHh LpR fFf" class="yap-layout">
     <!--hlavicka-->
     <q-header bordered class="yap-header">
-      <q-toolbar>
-        <q-btn flat round dense icon="menu" class="q-mr-sm" @click="leftDrawerOpen = !leftDrawerOpen">
+      <q-toolbar class="q-px-sm q-px-md-md header-toolbar">
+        <q-btn flat round dense icon="menu" class="q-mr-xs" @click="leftDrawerOpen = !leftDrawerOpen">
           <q-tooltip>Zoznam kanálov</q-tooltip>
         </q-btn>
-        <img src="/assets/logo.png" alt="YAP!" class="header-logo" />
+        <img src="/assets/logo.png" alt="YAP!" class="header-logo gt-xs" />
 
-        <q-toolbar-title class="text-subtitle1 row items-center no-wrap">
+        <q-toolbar-title class="text-subtitle1 row items-center no-wrap header-title">
           <template v-if="channel">
-            <q-icon :name="channel.type === 'private' ? 'lock' : 'tag'" size="18px" class="text-amber-5 q-mr-xs" />
+            <q-icon :name="channel.type === 'private' ? 'lock' : 'tag'" size="18px" class="text-amber-5 q-mr-xs shrink-0" />
             <span class="ellipsis">{{ channel.name }}</span>
-            <q-badge v-if="channel.admin === store.me.id" color="amber-8" text-color="dark" class="q-ml-sm" label="správca" />
+            <q-badge
+              v-if="channel.admin === store.me.id"
+              color="amber-8"
+              text-color="dark"
+              class="q-ml-xs shrink-0 gt-xs"
+              label="správca"
+            />
           </template>
+          <span v-else class="text-grey-5 text-body2 ellipsis">YAP!</span>
         </q-toolbar-title>
 
         <!--test notifikacie, sprava pride o 5s-->
@@ -23,8 +30,8 @@
           no-caps
           color="amber-5"
           icon="notifications_active"
-          label="Test notifikácie (5s)"
-          class="q-mr-sm gt-xs"
+          :label="$q.screen.gt.sm ? 'Test notifikácie (5s)' : ''"
+          class="q-mr-xs gt-xs"
           @click="scheduleTestMessage"
         >
           <q-tooltip>Pošle správu o 5 sekúnd (prepnite na inú kartu na otestovanie notifikácie)</q-tooltip>
@@ -37,8 +44,8 @@
           dense
           no-caps
           icon="group"
-          :label="membersCountText"
-          class="q-mr-sm"
+          :label="$q.screen.gt.xs ? membersCountText : String(currentMembers.length)"
+          class="q-mr-xs header-action-btn"
           @click="rightDrawerOpen = !rightDrawerOpen"
         >
           <q-tooltip>Zoznam členov kanála (/list)</q-tooltip>
@@ -50,7 +57,7 @@
           dense
           no-caps
           :color="statusColor(store.me.status)"
-          class="q-mr-sm"
+          class="q-mr-xs header-status-btn"
         >
           <template #label>
             <div class="row items-center no-wrap">
@@ -58,7 +65,11 @@
               <span class="text-caption text-bold uppercase">{{ store.me.status }}</span>
             </div>
           </template>
-          <q-list class="bg-grey-9 text-white">
+          <q-list class="bg-grey-9 text-white" style="min-width: 160px">
+            <q-item-label header class="text-grey-4 text-caption q-pb-xs">
+              Prihlásený ako <strong class="text-amber-5">@{{ store.me.nick }}</strong>
+            </q-item-label>
+            <q-separator dark class="q-mb-xs" />
             <q-item clickable v-close-popup @click="changeStatus('online')">
               <q-item-section avatar style="min-width: 28px">
                 <q-icon name="circle" size="10px" class="text-positive" />
@@ -80,7 +91,7 @@
           </q-list>
         </q-btn-dropdown>
 
-        <span class="text-grey-4 q-mr-sm text-caption">@{{ store.me.nick }}</span>
+        <span class="text-grey-4 q-mr-sm text-caption gt-sm">@{{ store.me.nick }}</span>
         <q-btn flat round dense icon="logout" @click="onLogout">
           <q-tooltip>Odhlásiť sa</q-tooltip>
         </q-btn>
@@ -715,9 +726,28 @@ export default {
   padding: 8px 12px;
 }
 
+.header-toolbar {
+  min-height: 50px;
+  gap: 2px;
+}
+
+.header-title {
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+.header-action-btn,
+.header-status-btn {
+  padding: 4px 6px;
+}
+
 .header-logo {
-  height: 32px;
-  margin-right: 8px;
+  height: 30px;
+  margin-right: 6px;
 }
 
 .yap-drawer {
