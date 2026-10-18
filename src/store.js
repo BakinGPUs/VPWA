@@ -278,7 +278,7 @@ export function leaveChannel (channelId) {
   }
 }
 
-//kanal bez spravy 30 dni dead
+//kanal bez spravy 30 dni zanika
 export function removeExpiredChannels () {
   const expired = store.channels.filter(channel => Date.now() - channel.lastMessage > 30 * DAY)
   expired.forEach(channel => deleteChannel(channel.id))
@@ -425,20 +425,19 @@ export function executeCommand (rawText) {
     }
 
     //kazdy moze hlasovat len raz, 3 hlasy = ban
-    const alreadyVoted = store.kicks.some(k => k.channel === channel.id && k.user === target.id && k.by === store.me.id)
-    if (alreadyVoted) {
-      const currentVotes = new Set(store.kicks.filter(k => k.channel === channel.id && k.user === target.id).map(k => k.by)).size
-      return { ok: false, message: `Za vyhodenie @${target.nick} ste už hlasovali (${currentVotes}/3).` }
+    const votes = store.kicks.filter(kick => kick.channel === channel.id && kick.user === target.id)
+    if (votes.some(kick => kick.by === store.me.id)) {
+      return { ok: false, message: `Za vyhodenie @${target.nick} ste už hlasovali (${votes.length}/3).` }
     }
 
     store.kicks.push({ channel: channel.id, user: target.id, by: store.me.id })
-    const distinctVotes = new Set(store.kicks.filter(k => k.channel === channel.id && k.user === target.id).map(k => k.by)).size
+    const count = votes.length + 1
 
-    if (distinctVotes >= 3) {
+    if (count >= 3) {
       targetMember.state = 'banned'
-      return { ok: true, message: `Používateľ @${target.nick} dostal trvalý ban (${distinctVotes}/3 hlasov).` }
+      return { ok: true, message: `Používateľ @${target.nick} dostal trvalý ban (${count}/3 hlasov).` }
     }
-    return { ok: true, message: `Hlas za vyhodenie @${target.nick} zaznamenaný (${distinctVotes}/3).` }
+    return { ok: true, message: `Hlas za vyhodenie @${target.nick} zaznamenaný (${count}/3).` }
   }
 
   if (cmd === '/list') {

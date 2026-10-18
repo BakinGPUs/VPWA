@@ -538,7 +538,7 @@ export default {
       }
     },
 
-    //po 5s pride sprava, notifikacia len ked appka nie je visible, nie som dnd/offline a ked mam zapnute iba pre mna tak len ked ma oznacia
+    //test sprava o 5s
     scheduleTestMessage () {
       this.$q.notify({
         message: 'Testovacia správa príde o 5 sekúnd. Prepnite na inú kartu alebo minimalizujte prehliadač!',
