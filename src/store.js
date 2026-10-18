@@ -191,6 +191,7 @@ export function register (firstName, lastName, nick, email, password) {
   store.me = user
   store.offlineSince = 0
   store.currentChannel = null
+  removeExpiredChannels()
   return null
 }
 
@@ -277,7 +278,7 @@ export function leaveChannel (channelId) {
   }
 }
 
-//kanal bez spravy 30 dni zanika
+//kanal bez spravy 30 dni dead
 export function removeExpiredChannels () {
   const expired = store.channels.filter(channel => Date.now() - channel.lastMessage > 30 * DAY)
   expired.forEach(channel => deleteChannel(channel.id))
