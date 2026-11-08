@@ -53,6 +53,10 @@ export default defineConfig({
     () => import('@adonisjs/cors/cors_provider'),
     () => import('@adonisjs/auth/auth_provider'),
     () => import('#providers/api_provider'),
+    {
+      file: () => import('@rlanz/socket/provider'),
+      environment: ['web', 'test'],
+    }
   ],
 
   /*
@@ -111,6 +115,7 @@ export default defineConfig({
         transformers: { enabled: true },
       }),
       generateRegistry(),
+      () => import('@rlanz/socket/assembler_hook')
     ],
   },
 })
