@@ -1,6 +1,7 @@
 //data appky, vsetko v pamati, po refreshi sa resetne
 
 import { reactive } from 'vue'
+import { api, getToken, setToken } from 'src/api'
 
 const MINUTE = 60 * 1000
 const DAY = 24 * 60 * MINUTE
@@ -167,35 +168,70 @@ export function isMentioned (message) {
 
 //login, register, stav, spravy
 
-export function login (emailOrNick, password) {
-  const user = store.users.find(user =>
-    (user.email === emailOrNick || user.nick === emailOrNick) && user.password === password
-  )
-  if (!user) return 'Zlý email alebo heslo'
-
-  store.me = user
+//user zo servera, ak ho mame aj v mock datach tak sa spoja
+function setMe (user, token) {
+  setToken(token)
+  var existing = getUser(user.id)
+  if (existing) {
+    Object.assign(existing, user)
+    store.me = existing
+  } else {
+    store.users.push(user)
+    store.me = user
+  }
   store.me.status = 'online'
   store.offlineSince = 0
   store.currentChannel = null
   removeExpiredChannels()
-  return null
 }
 
-export function register (firstName, lastName, nick, email, password) {
+export async function login (email, password) {
+  try {
+    var result = await api('POST', '/auth/login', { email: email, password: password })
+    setMe(result.data.user, result.data.token)
+    return null
+  } catch (error) {
+    return error.message
+  }
+}
+
+export async function register (firstName, lastName, nick, email, password) {
   if (!firstName || !lastName || !nick || !email || !password) return 'Vyplňte všetky polia'
-  if (store.users.some(user => user.nick.toLowerCase() === nick.toLowerCase())) return 'Tento nick už existuje'
-  if (store.users.some(user => user.email.toLowerCase() === email.toLowerCase())) return 'Tento email už existuje'
-
-  const user = { id: newId(), firstName, lastName, nick, email, password, status: 'online' }
-  store.users.push(user)
-  store.me = user
-  store.offlineSince = 0
-  store.currentChannel = null
-  removeExpiredChannels()
-  return null
+  try {
+    var result = await api('POST', '/auth/signup', {
+      fullName: firstName + ' ' + lastName,
+      firstName: firstName,
+      lastName: lastName,
+      nick: nick,
+      email: email,
+      password: password,
+      passwordConfirmation: password
+    })
+    setMe(result.data.user, result.data.token)
+    return null
+  } catch (error) {
+    return error.message
+  }
 }
 
-export function logout () {
+//po refreshi stranky, ak mame token tak sa skusime prihlasit
+export async function restoreSession () {
+  var token = getToken()
+  if (!token) return
+  try {
+    var result = await api('GET', '/account/profile')
+    setMe(result.data, token)
+  } catch (error) {
+    setToken(null)
+  }
+}
+
+export async function logout () {
+  try {
+    await api('POST', '/account/logout')
+  } catch (error) {
+  }
+  setToken(null)
   store.me = null
   store.currentChannel = null
   store.offlineSince = 0

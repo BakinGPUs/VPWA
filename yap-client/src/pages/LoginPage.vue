@@ -188,13 +188,13 @@ export default {
     }
   },
   methods: {
-    login () {
-      const error = login(this.email, this.password)
+    async login () {
+      const error = await login(this.email, this.password)
       if (error) return this.$q.notify({ message: error, color: 'negative' })
       this.$router.push('/')
     },
-    register () {
-      const error = register(this.firstName, this.lastName, this.nick, this.email, this.password)
+    async register () {
+      const error = await register(this.firstName, this.lastName, this.nick, this.email, this.password)
       if (error) return this.$q.notify({ message: error, color: 'negative' })
       this.$router.push('/')
     }

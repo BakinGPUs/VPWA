@@ -7,7 +7,9 @@ export default class AccessTokensController {
   async store({ request, serialize }: HttpContext) {
     const { email, password } = await request.validateUsing(loginValidator)
 
-    const user = await User.verifyCredentials(email, password)
+    //da sa prihlasit aj nickom
+    const userByNick = await User.findBy('nick', email)
+    const user = await User.verifyCredentials(userByNick ? userByNick.email : email, password)
     const token = await User.accessTokens.create(user)
 
     return serialize({
