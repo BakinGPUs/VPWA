@@ -67,30 +67,8 @@ const incoming = [
   { channel: 1, user: 6, text: 'vyskúšajte notifikácie' }
 ]
 
-const messages = [
-  { id: 81, channel: 2, user: 2, time: now - 80 * MINUTE, text: 'urobil som UML' },
-  { id: 82, channel: 2, user: 3, time: now - 60 * MINUTE, text: 'layout je hotový' },
-  { id: 83, channel: 2, user: 2, time: now - 40 * MINUTE, text: '@jozko spravíš príkazový riadok?' },
-  { id: 84, channel: 2, user: 1, time: now - 20 * MINUTE, text: 'jasné' },
-  { id: 85, channel: 4, user: 4, time: now - 3000 * MINUTE, text: 'arch btw' },
-  { id: 86, channel: 6, user: 1, time: now - 40 * DAY, text: 'tu už nikto nepíše' }
-]
-
-//nejake stare spravy do vseobecne aby bolo co scrollovat
-const smallTalk = [
-  'kto ide zajtra na prednášku?', 'zajtra je zrušené cvičenie', 'idem na kávu', 'dobré ráno',
-  'ten lab bol brutal', 'deadline je v nedeľu', '@marek kedy je zápočet?', 'má niekto poznámky?',
-  '@jozko už si to odovzdal?', 'wifi zase padá'
-]
-for (let i = 0; i < 80; i++) {
-  messages.push({
-    id: i + 1,
-    channel: 1,
-    user: (i % 6) + 1,
-    time: now - (2400 - i * 30) * MINUTE,
-    text: smallTalk[i % smallTalk.length]
-  })
-}
+//spravy sa nacitavaju zo servera, pozri loadMessages
+const messages = []
 
 //stav
 
@@ -245,6 +223,38 @@ export function setStatus (status) {
   } else {
     store.offlineSince = 0
   }
+}
+
+//nacita 1 stranu sprav kanala zo servera (20 sprav, od najnovsich)
+export async function loadMessages (channelId, page) {
+  var result
+  try {
+    result = await api('GET', '/channels/' + channelId + '/messages?page=' + page)
+  } catch (error) {
+    return { hasMore: false, error: error.message }
+  }
+
+  //pri 1. strane zahodime stare spravy kanala
+  if (page === 1) {
+    store.messages = store.messages.filter(message => message.channel !== channelId)
+  }
+
+  for (var item of result.data) {
+    if (!getUser(item.userId)) {
+      store.users.push({ id: item.userId, nick: item.nick, status: 'offline' })
+    }
+    if (store.messages.some(message => message.id === item.id)) continue
+    store.messages.push({
+      id: item.id,
+      channel: item.channelId,
+      user: item.userId,
+      time: new Date(item.createdAt).getTime(),
+      text: item.text
+    })
+  }
+  store.messages.sort((a, b) => a.time - b.time)
+
+  return { hasMore: result.metadata.currentPage < result.metadata.lastPage }
 }
 
 export function sendMessage (text) {

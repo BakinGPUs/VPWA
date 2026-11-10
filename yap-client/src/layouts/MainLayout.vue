@@ -424,7 +424,7 @@
 import {
   store, getUser, myChannels, isInvited, isMentioned, channelMessages, channelMembers,
   channelTyping, sendMessage, acceptInvite, declineInvite, leaveChannel, deleteChannel,
-  createChannel, executeCommand, setStatus, triggerIncomingMessage, logout
+  createChannel, executeCommand, setStatus, triggerIncomingMessage, logout, loadMessages
 } from 'src/store'
 
 const PAGE_SIZE = 20
@@ -437,6 +437,9 @@ export default {
       rightDrawerOpen: false,
       text: '',
       count: PAGE_SIZE,
+      page: 1,
+      hasMore: true,
+      loading: false,
       showCreateDialog: false,
       newChannelName: '',
       newChannelIsPrivate: false,
@@ -459,6 +462,11 @@ export default {
     visibleMessages () {
       return this.messages.slice(-this.count)
     },
+    //pri nacitani starsich sprav sa nescrolluje dole, iba ked pride nova
+    lastMessageId () {
+      const last = this.messages[this.messages.length - 1]
+      return last ? last.id : null
+    },
     currentMembers () {
       return store.currentChannel ? channelMembers(store.currentChannel) : []
     },
@@ -473,10 +481,16 @@ export default {
     }
   },
   watch: {
-    'store.currentChannel' () {
-      this.count = PAGE_SIZE
+    'store.currentChannel': {
+      immediate: true,
+      handler () {
+        this.count = PAGE_SIZE
+        this.page = 1
+        this.hasMore = true
+        this.fetchMessages()
+      }
     },
-    'messages.length' () {
+    lastMessageId () {
       this.scrollToBottom()
     }
   },
@@ -616,13 +630,31 @@ export default {
       }
     },
 
-    loadOlder (index, done) {
+    async fetchMessages () {
       const channelId = store.currentChannel
-      setTimeout(() => {
-        if (channelId !== store.currentChannel) return
-        this.count += PAGE_SIZE
-        done(this.count >= this.messages.length)
-      }, 400)
+      if (!channelId) return
+      this.loading = true
+      const result = await loadMessages(channelId, this.page)
+      this.loading = false
+      if (channelId !== store.currentChannel) return
+      this.hasMore = result.hasMore
+      if (this.page === 1) this.scrollToBottom()
+    },
+
+    //infinite scroll, ked dojdu nacitane spravy tak sa stiahne dalsia strana
+    async loadOlder (index, done) {
+      const channelId = store.currentChannel
+      if (this.loading) {
+        setTimeout(() => done(), 300)
+        return
+      }
+      if (this.count >= this.messages.length && this.hasMore) {
+        this.page++
+        await this.fetchMessages()
+      }
+      if (channelId !== store.currentChannel) return
+      this.count += PAGE_SIZE
+      done(this.count >= this.messages.length && !this.hasMore)
     },
 
     submit () {

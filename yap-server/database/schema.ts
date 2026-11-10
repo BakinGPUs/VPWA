@@ -32,6 +32,59 @@ export class AuthAccessTokenSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class ChannelMemberSchema extends BaseModel {
+  static $columns = ['channelId', 'createdAt', 'id', 'state', 'updatedAt', 'userId'] as const
+  $columns = ChannelMemberSchema.$columns
+  @column()
+  declare channelId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare state: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare userId: number
+}
+
+export class ChannelSchema extends BaseModel {
+  static $columns = ['adminId', 'createdAt', 'id', 'lastMessageAt', 'name', 'type', 'updatedAt'] as const
+  $columns = ChannelSchema.$columns
+  @column()
+  declare adminId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare lastMessageAt: DateTime
+  @column()
+  declare name: string
+  @column()
+  declare type: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class MessageSchema extends BaseModel {
+  static $columns = ['channelId', 'createdAt', 'id', 'text', 'updatedAt', 'userId'] as const
+  $columns = MessageSchema.$columns
+  @column()
+  declare channelId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare text: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare userId: number
+}
+
 export class UserSchema extends BaseModel {
   static $columns = ['createdAt', 'email', 'firstName', 'fullName', 'id', 'lastName', 'nick', 'notifyOnlyMentions', 'password', 'status', 'updatedAt'] as const
   $columns = UserSchema.$columns

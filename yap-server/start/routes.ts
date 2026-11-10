@@ -35,3 +35,10 @@ router
       .use(middleware.auth())
   })
   .prefix('/api/v1')
+
+router
+  .group(() => {
+    router.get('channels/:id/messages', [controllers.Messages, 'index'])
+  })
+  .prefix('/api/v1')
+  .use(middleware.auth())
