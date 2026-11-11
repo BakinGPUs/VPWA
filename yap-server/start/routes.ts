@@ -39,6 +39,7 @@ router
 router
   .group(() => {
     router.get('channels/:id/messages', [controllers.Messages, 'index'])
+    router.post('channels/:id/messages', [controllers.Messages, 'store'])
 
     router.get('channels', [controllers.Channels, 'index'])
     router.get('channels/:id/members', [controllers.Channels, 'members'])

@@ -691,7 +691,7 @@ export default {
         return
       }
 
-      const error = sendMessage(text)
+      const error = await sendMessage(text)
       if (error) {
         this.$q.notify({ message: error, color: 'negative', icon: 'error' })
         return

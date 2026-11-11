@@ -38,6 +38,12 @@ const routes = {
     tokens: [[0,"api"],[0,"v1"],[0,"channels"],[1,"id"],[0,"messages"]],
     types: placeholder as Registry['messages.index']['types'],
   },
+  'messages.store': {
+    methods: ["POST"],
+    pattern: '/api/v1/channels/:id/messages',
+    tokens: [[0,"api"],[0,"v1"],[0,"channels"],[1,"id"],[0,"messages"]],
+    types: placeholder as Registry['messages.store']['types'],
+  },
   'channels.index': {
     methods: ["GET","HEAD"],
     pattern: '/api/v1/channels',

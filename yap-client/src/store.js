@@ -205,31 +205,44 @@ export async function loadMessages (channelId, page) {
   }
 
   for (var item of result.data) {
-    if (!getUser(item.userId)) {
-      store.users.push({ id: item.userId, nick: item.nick, status: 'offline' })
-    }
-    if (store.messages.some(message => message.id === item.id)) continue
-    store.messages.push({
-      id: item.id,
-      channel: item.channelId,
-      user: item.userId,
-      time: new Date(item.createdAt).getTime(),
-      text: item.text
-    })
+    addMessage(item)
   }
-  store.messages.sort((a, b) => a.time - b.time)
 
   return { hasMore: result.metadata.currentPage < result.metadata.lastPage }
 }
 
-export function sendMessage (text) {
+//prida spravu zo servera do store (ak tam este nie je)
+export function addMessage (item) {
+  if (!getUser(item.userId)) {
+    store.users.push({ id: item.userId, nick: item.nick, status: 'offline' })
+  }
+  if (store.messages.some(message => message.id === item.id)) return null
+
+  var message = {
+    id: item.id,
+    channel: item.channelId,
+    user: item.userId,
+    time: new Date(item.createdAt).getTime(),
+    text: item.text
+  }
+  store.messages.push(message)
+  store.messages.sort((a, b) => a.time - b.time)
+  return message
+}
+
+export async function sendMessage (text) {
   if (store.me.status === 'offline') {
     return 'Ste v stave offline. Pre odosielanie správ zmeňte svoj stav na online.'
   }
   const channel = getChannel(store.currentChannel)
   if (!channel || isInvited(channel.id)) return 'Nie ste členom tohto kanála'
 
-  store.messages.push({ id: newId(), channel: channel.id, user: store.me.id, time: Date.now(), text })
+  try {
+    var result = await api('POST', '/channels/' + channel.id + '/messages', { text: text })
+    addMessage(result.data)
+  } catch (error) {
+    return error.message
+  }
   channel.lastMessage = Date.now()
   return null
 }
