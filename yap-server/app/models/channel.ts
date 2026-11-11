@@ -19,6 +19,6 @@ export default class Channel extends ChannelSchema {
   //kanal bez novej spravy viac ako 30 dni zanika
   static async deleteExpired() {
     const limit = DateTime.now().minus({ days: 30 })
-    await Channel.query().where('lastMessageAt', '<', limit.toSQL()!).delete()
+    await Channel.query().where('lastMessageAt', '<', limit.toFormat('yyyy-MM-dd HH:mm:ss')).delete()
   }
 }
