@@ -5,6 +5,7 @@ import { DateTime } from 'luxon'
 import User from '#models/user'
 import ChannelMember from '#models/channel_member'
 import Message from '#models/message'
+import KickVote from '#models/kick_vote'
 
 export default class Channel extends ChannelSchema {
   @belongsTo(() => User, { foreignKey: 'adminId' })
@@ -15,6 +16,9 @@ export default class Channel extends ChannelSchema {
 
   @hasMany(() => Message)
   declare messages: HasMany<typeof Message>
+
+  @hasMany(() => KickVote)
+  declare kickVotes: HasMany<typeof KickVote>
 
   //kanal bez novej spravy viac ako 30 dni zanika
   static async deleteExpired() {

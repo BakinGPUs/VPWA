@@ -4,6 +4,7 @@ import User from '#models/user'
 import Channel from '#models/channel'
 import ChannelMember from '#models/channel_member'
 import Message from '#models/message'
+import KickVote from '#models/kick_vote'
 
 //rovnake testovacie data ako v yap-client/src/store.js, heslo je vsade heslo123
 export default class extends BaseSeeder {
@@ -16,7 +17,7 @@ export default class extends BaseSeeder {
       { firstName: 'Peter', lastName: 'Šimko', fullName: 'Peter Šimko', nick: 'peto', email: 'peto@stuba.sk', password: 'heslo123', status: 'offline' },
       { firstName: 'Tomáš', lastName: 'Rypal', fullName: 'Tomáš Rypal', nick: 'trollko', email: 'trollko@stuba.sk', password: 'heslo123', status: 'online' },
     ])
-    const [jozko, ed, lucia, marek, peto] = users
+    const [jozko, ed, lucia, marek, peto, trollko] = users
 
     const now = DateTime.now()
     const vseobecne = await Channel.create({ name: 'vseobecne', type: 'public', adminId: marek.id, lastMessageAt: now })
@@ -38,6 +39,12 @@ export default class extends BaseSeeder {
       { channelId: linux.id, userId: peto.id, state: 'banned' },
       { channelId: tajny.id, userId: ed.id, state: 'joined' },
       { channelId: staryKanal.id, userId: jozko.id, state: 'joined' },
+    ])
+
+    //trollko uz ma 2 hlasy na kick
+    await KickVote.createMany([
+      { channelId: vseobecne.id, userId: trollko.id, voterId: ed.id },
+      { channelId: vseobecne.id, userId: trollko.id, voterId: lucia.id },
     ])
 
     const smallTalk = [

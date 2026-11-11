@@ -32,5 +32,6 @@ export interface ApiDefinition {
     destroy: typeof routes['channels.destroy']
     invite: typeof routes['channels.invite']
     revoke: typeof routes['channels.revoke']
+    kick: typeof routes['channels.kick']
   }
 }

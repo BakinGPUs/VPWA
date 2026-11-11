@@ -68,6 +68,23 @@ export class ChannelSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class KickVoteSchema extends BaseModel {
+  static $columns = ['channelId', 'createdAt', 'id', 'updatedAt', 'userId', 'voterId'] as const
+  $columns = KickVoteSchema.$columns
+  @column()
+  declare channelId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare userId: number
+  @column()
+  declare voterId: number
+}
+
 export class MessageSchema extends BaseModel {
   static $columns = ['channelId', 'createdAt', 'id', 'text', 'updatedAt', 'userId'] as const
   $columns = MessageSchema.$columns
