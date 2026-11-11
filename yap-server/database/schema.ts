@@ -33,12 +33,12 @@ export class AuthAccessTokenSchema extends BaseModel {
 }
 
 export class ChannelMemberSchema extends BaseModel {
-  static $columns = ['channelId', 'createdAt', 'id', 'state', 'updatedAt', 'userId'] as const
+  static $columns = ['createdAt', 'channelId', 'id', 'state', 'updatedAt', 'userId'] as const
   $columns = ChannelMemberSchema.$columns
-  @column()
-  declare channelId: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
+  @column()
+  declare channelId: number
   @column({ isPrimary: true })
   declare id: number
   @column()
@@ -69,12 +69,12 @@ export class ChannelSchema extends BaseModel {
 }
 
 export class KickVoteSchema extends BaseModel {
-  static $columns = ['channelId', 'createdAt', 'id', 'updatedAt', 'userId', 'voterId'] as const
+  static $columns = ['createdAt', 'channelId', 'id', 'updatedAt', 'userId', 'voterId'] as const
   $columns = KickVoteSchema.$columns
-  @column()
-  declare channelId: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
+  @column()
+  declare channelId: number
   @column({ isPrimary: true })
   declare id: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -86,12 +86,12 @@ export class KickVoteSchema extends BaseModel {
 }
 
 export class MessageSchema extends BaseModel {
-  static $columns = ['channelId', 'createdAt', 'id', 'text', 'updatedAt', 'userId'] as const
+  static $columns = ['createdAt', 'channelId', 'id', 'text', 'updatedAt', 'userId'] as const
   $columns = MessageSchema.$columns
-  @column()
-  declare channelId: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
+  @column()
+  declare channelId: number
   @column({ isPrimary: true })
   declare id: number
   @column()
