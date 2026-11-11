@@ -9,19 +9,29 @@ export type ScannedRoutes = {
     'profile.profile.show': { paramsTuple?: []; params?: {} }
     'profile.access_tokens.destroy': { paramsTuple?: []; params?: {} }
     'messages.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.index': { paramsTuple?: []; params?: {} }
+    'channels.members': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.accept': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.decline': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
     'profile.profile.show': { paramsTuple?: []; params?: {} }
     'messages.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.index': { paramsTuple?: []; params?: {} }
+    'channels.members': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   HEAD: {
     'profile.profile.show': { paramsTuple?: []; params?: {} }
     'messages.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.index': { paramsTuple?: []; params?: {} }
+    'channels.members': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   POST: {
     'auth.new_account.store': { paramsTuple?: []; params?: {} }
     'auth.access_tokens.store': { paramsTuple?: []; params?: {} }
     'profile.access_tokens.destroy': { paramsTuple?: []; params?: {} }
+    'channels.accept': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.decline': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

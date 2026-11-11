@@ -21,4 +21,10 @@ export interface ApiDefinition {
   messages: {
     index: typeof routes['messages.index']
   }
+  channels: {
+    index: typeof routes['channels.index']
+    members: typeof routes['channels.members']
+    accept: typeof routes['channels.accept']
+    decline: typeof routes['channels.decline']
+  }
 }

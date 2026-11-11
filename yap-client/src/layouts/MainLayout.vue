@@ -285,8 +285,8 @@
             <div class="text-grey-5 q-mb-md">
               Správca: @{{ getUser(channel.admin)?.nick }} ({{ channel.type === 'private' ? 'Súkromný' : 'Verejný' }})
             </div>
-            <q-btn unelevated no-caps class="btn-yap q-mr-sm" label="Prijať pozvánku" @click="acceptInvite(channel.id)" />
-            <q-btn flat no-caps color="grey-5" label="Odmietnuť" @click="declineInvite(channel.id)" />
+            <q-btn unelevated no-caps class="btn-yap q-mr-sm" label="Prijať pozvánku" @click="onAccept(channel.id)" />
+            <q-btn flat no-caps color="grey-5" label="Odmietnuť" @click="onDecline(channel.id)" />
           </div>
         </div>
 
@@ -424,7 +424,7 @@
 import {
   store, getUser, myChannels, isInvited, isMentioned, channelMessages, channelMembers,
   channelTyping, sendMessage, acceptInvite, declineInvite, leaveChannel, deleteChannel,
-  createChannel, executeCommand, setStatus, triggerIncomingMessage, logout, loadMessages
+  createChannel, executeCommand, setStatus, triggerIncomingMessage, logout, loadMessages, loadMembers
 } from 'src/store'
 
 const PAGE_SIZE = 20
@@ -488,6 +488,7 @@ export default {
         this.page = 1
         this.hasMore = true
         this.fetchMessages()
+        if (store.currentChannel) loadMembers(store.currentChannel)
       }
     },
     lastMessageId () {
@@ -508,8 +509,23 @@ export default {
     getUser,
     isInvited,
     isMentioned,
-    acceptInvite,
-    declineInvite,
+
+    //po prijati pozvanky sa nacitaju spravy
+    async onAccept (channelId) {
+      const error = await acceptInvite(channelId)
+      if (error) {
+        this.$q.notify({ message: error, color: 'negative', icon: 'error' })
+        return
+      }
+      this.page = 1
+      this.hasMore = true
+      this.fetchMessages()
+    },
+
+    async onDecline (channelId) {
+      const error = await declineInvite(channelId)
+      if (error) this.$q.notify({ message: error, color: 'negative', icon: 'error' })
+    },
 
     pageHeight (offset, height) {
       return { height: (height - offset) + 'px' }

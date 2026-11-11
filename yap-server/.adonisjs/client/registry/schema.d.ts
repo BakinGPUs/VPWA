@@ -73,6 +73,58 @@ export interface Registry {
       rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/messages_controller').default['index']>>>
     }
   }
+  'channels.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/v1/channels'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['index']>>>
+      rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['index']>>>
+    }
+  }
+  'channels.members': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/v1/channels/:id/members'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['members']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['members']>>>
+      rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['members']>>>
+    }
+  }
+  'channels.accept': {
+    methods: ["POST"]
+    pattern: '/api/v1/channels/:id/accept'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['accept']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['accept']>>>
+      rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['accept']>>>
+    }
+  }
+  'channels.decline': {
+    methods: ["POST"]
+    pattern: '/api/v1/channels/:id/decline'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['decline']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['decline']>>>
+      rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['decline']>>>
+    }
+  }
 }
 
 export namespace Route {

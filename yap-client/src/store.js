@@ -5,47 +5,13 @@ import { api, getToken, setToken } from 'src/api'
 
 const MINUTE = 60 * 1000
 const DAY = 24 * 60 * MINUTE
-const now = Date.now()
 
 //mock data
 
-const users = [
-  { id: 1, firstName: 'Jozef', lastName: 'Mrkvička', nick: 'jozko', email: 'jozko@stuba.sk', password: 'heslo123', status: 'online' },
-  { id: 2, firstName: 'Eduard', lastName: 'Kováč', nick: 'peterbondra', email: 'ed@stuba.sk', password: 'heslo123', status: 'online' },
-  { id: 3, firstName: 'Lucia', lastName: 'Horváthová', nick: 'lucia', email: 'lucia@stuba.sk', password: 'heslo123', status: 'dnd' },
-  { id: 4, firstName: 'Marek', lastName: 'Baláž', nick: 'ludovahudbastanabalaza', email: 'marek@stuba.sk', password: 'heslo123', status: 'online' },
-  { id: 5, firstName: 'Peter', lastName: 'Šimko', nick: 'peto', email: 'peto@stuba.sk', password: 'heslo123', status: 'offline' },
-  { id: 6, firstName: 'Tomáš', lastName: 'Rypal', nick: 'trollko', email: 'trollko@stuba.sk', password: 'heslo123', status: 'online' }
-]
-
-//type public/private, admin = kto vytvoril kanal
-const channels = [
-  { id: 1, name: 'vseobecne', type: 'public', admin: 4, lastMessage: now },
-  { id: 2, name: 'vpwa-tim', type: 'private', admin: 1, lastMessage: now },
-  { id: 3, name: 'hry', type: 'private', admin: 3, lastMessage: now - 1 * DAY },
-  { id: 4, name: 'linux', type: 'public', admin: 4, lastMessage: now - 2 * DAY },
-  { id: 5, name: 'tajny', type: 'private', admin: 2, lastMessage: now - 1 * DAY },
-  { id: 6, name: 'stary-kanal', type: 'public', admin: 1, lastMessage: now - 40 * DAY } //starsi ako 30 dni, zmaze sa
-]
-
-//state joined / invited / banned
-const members = [
-  { channel: 1, user: 1, state: 'joined' },
-  { channel: 1, user: 2, state: 'joined' },
-  { channel: 1, user: 3, state: 'joined' },
-  { channel: 1, user: 4, state: 'joined' },
-  { channel: 1, user: 5, state: 'joined' },
-  { channel: 1, user: 6, state: 'joined' },
-  { channel: 2, user: 1, state: 'joined' },
-  { channel: 2, user: 2, state: 'joined' },
-  { channel: 2, user: 3, state: 'joined' },
-  { channel: 3, user: 3, state: 'joined' },
-  { channel: 3, user: 1, state: 'invited' },
-  { channel: 4, user: 4, state: 'joined' },
-  { channel: 4, user: 5, state: 'banned' },
-  { channel: 5, user: 2, state: 'joined' },
-  { channel: 6, user: 1, state: 'joined' }
-]
+//users, kanaly a clenovia sa nacitavaju zo servera
+const users = []
+const channels = []
+const members = []
 
 //kick hlasy - user je koho kickuju, by je kto hlasoval
 const kicks = [
@@ -167,6 +133,7 @@ export async function login (email, password) {
   try {
     var result = await api('POST', '/auth/login', { email: email, password: password })
     setMe(result.data.user, result.data.token)
+    await loadChannels()
     return null
   } catch (error) {
     return error.message
@@ -186,6 +153,7 @@ export async function register (firstName, lastName, nick, email, password) {
       passwordConfirmation: password
     })
     setMe(result.data.user, result.data.token)
+    await loadChannels()
     return null
   } catch (error) {
     return error.message
@@ -199,6 +167,7 @@ export async function restoreSession () {
   try {
     var result = await api('GET', '/account/profile')
     setMe(result.data, token)
+    await loadChannels()
   } catch (error) {
     setToken(null)
   }
@@ -269,14 +238,71 @@ export function sendMessage (text) {
   return null
 }
 
-export function acceptInvite (channelId) {
-  const member = getMember(channelId, store.me.id)
-  if (member) member.state = 'joined'
+//moje kanaly zo servera
+export async function loadChannels () {
+  var result = await api('GET', '/channels')
+
+  store.channels = result.data.map(item => ({
+    id: item.id,
+    name: item.name,
+    type: item.type,
+    admin: item.adminId,
+    lastMessage: new Date(item.lastMessageAt).getTime()
+  }))
+
+  //moje clenstva prepiseme tymi zo servera
+  store.members = store.members.filter(member => member.user !== store.me.id)
+  for (var item of result.data) {
+    store.members.push({ channel: item.id, user: store.me.id, state: item.state })
+  }
+
+  //ked uz nie som v otvorenom kanali
+  if (store.currentChannel && !getChannel(store.currentChannel)) {
+    store.currentChannel = null
+  }
 }
 
-export function declineInvite (channelId) {
-  store.members = store.members.filter(member => !(member.channel === channelId && member.user === store.me.id))
+//clenovia kanala zo servera
+export async function loadMembers (channelId) {
+  var result
+  try {
+    result = await api('GET', '/channels/' + channelId + '/members')
+  } catch (error) {
+    return
+  }
+
+  store.members = store.members.filter(member => member.channel !== channelId || member.user === store.me.id)
+  for (var item of result.data) {
+    var user = getUser(item.userId)
+    var data = { id: item.userId, nick: item.nick, firstName: item.firstName, lastName: item.lastName }
+    if (user) Object.assign(user, data)
+    else store.users.push({ ...data, status: item.status })
+    if (item.userId !== store.me.id) {
+      store.members.push({ channel: channelId, user: item.userId, state: item.state })
+    }
+  }
+}
+
+export async function acceptInvite (channelId) {
+  try {
+    await api('POST', '/channels/' + channelId + '/accept')
+  } catch (error) {
+    return error.message
+  }
+  await loadChannels()
+  await loadMembers(channelId)
+  return null
+}
+
+export async function declineInvite (channelId) {
+  try {
+    await api('POST', '/channels/' + channelId + '/decline')
+  } catch (error) {
+    return error.message
+  }
   if (store.currentChannel === channelId) store.currentChannel = null
+  await loadChannels()
+  return null
 }
 
 //kanaly a prikazy

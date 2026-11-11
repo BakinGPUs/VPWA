@@ -39,6 +39,11 @@ router
 router
   .group(() => {
     router.get('channels/:id/messages', [controllers.Messages, 'index'])
+
+    router.get('channels', [controllers.Channels, 'index'])
+    router.get('channels/:id/members', [controllers.Channels, 'members'])
+    router.post('channels/:id/accept', [controllers.Channels, 'accept'])
+    router.post('channels/:id/decline', [controllers.Channels, 'decline'])
   })
   .prefix('/api/v1')
   .use(middleware.auth())
