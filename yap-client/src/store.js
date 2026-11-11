@@ -1,10 +1,7 @@
-//data appky, vsetko v pamati, po refreshi sa resetne
+//data appky, vacsina sa nacitava zo servera
 
 import { reactive } from 'vue'
 import { api, getToken, setToken } from 'src/api'
-
-const MINUTE = 60 * 1000
-const DAY = 24 * 60 * MINUTE
 
 //mock data
 
@@ -126,7 +123,6 @@ function setMe (user, token) {
   store.me.status = 'online'
   store.offlineSince = 0
   store.currentChannel = null
-  removeExpiredChannels()
 }
 
 export async function login (email, password) {
@@ -335,11 +331,6 @@ export async function leaveChannel (channelId) {
   if (store.currentChannel === channelId) store.currentChannel = null
   await loadChannels()
   return result.message
-}
-
-//kanal bez spravy 30 dni zanika
-export function removeExpiredChannels () {
-  store.channels = store.channels.filter(channel => Date.now() - channel.lastMessage <= 30 * DAY)
 }
 
 //fake sprava zo servera na test notifikacii

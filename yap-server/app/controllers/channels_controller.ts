@@ -12,6 +12,8 @@ export default class ChannelsController {
   //moje kanaly, pozvanky su hore
   async index({ auth }: HttpContext) {
     const user = auth.getUserOrFail()
+    await Channel.deleteExpired()
+
     const members = await ChannelMember.query()
       .where('userId', user.id)
       .whereIn('state', ['joined', 'invited'])
@@ -92,6 +94,9 @@ export default class ChannelsController {
     if (!/^[a-z0-9_-]{1,50}$/.test(name)) {
       return response.badRequest({ message: 'Názov kanála môže obsahovať iba písmená, čísla, - a _.' })
     }
+
+    //stare kanaly zmazeme, aby sa dalo pouzit ich meno
+    await Channel.deleteExpired()
 
     let channel = await Channel.findBy('name', name)
 

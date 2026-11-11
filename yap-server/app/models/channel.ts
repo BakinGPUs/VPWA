@@ -1,6 +1,7 @@
 import { ChannelSchema } from '#database/schema'
 import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { DateTime } from 'luxon'
 import User from '#models/user'
 import ChannelMember from '#models/channel_member'
 import Message from '#models/message'
@@ -14,4 +15,10 @@ export default class Channel extends ChannelSchema {
 
   @hasMany(() => Message)
   declare messages: HasMany<typeof Message>
+
+  //kanal bez novej spravy viac ako 30 dni zanika
+  static async deleteExpired() {
+    const limit = DateTime.now().minus({ days: 30 })
+    await Channel.query().where('lastMessageAt', '<', limit.toSQL()!).delete()
+  }
 }
