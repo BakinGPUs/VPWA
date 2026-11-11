@@ -44,7 +44,7 @@ export default class MessagesController {
       return response.forbidden({ message: 'Nie ste členom tohto kanála.' })
     }
 
-    const text = String(request.input('text', '')).trim()
+    const text = (request.input('text') || '').toString().trim()
     if (!text) {
       return response.badRequest({ message: 'Správa je prázdna.' })
     }

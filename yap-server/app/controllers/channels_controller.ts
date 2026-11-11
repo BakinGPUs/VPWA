@@ -88,7 +88,7 @@ export default class ChannelsController {
   //pridanie do kanala alebo vytvorenie noveho (/join nazov [private])
   async join({ auth, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
-    const name = String(request.input('name', '')).trim().toLowerCase()
+    const name = (request.input('name') || '').toString().trim().toLowerCase()
     const isPrivate = request.input('private') === true
 
     if (!/^[a-z0-9_-]{1,50}$/.test(name)) {
