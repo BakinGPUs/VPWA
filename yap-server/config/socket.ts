@@ -1,6 +1,5 @@
 import { defineConfig } from '@rlanz/socket'
 import { Secret } from '@adonisjs/core/helpers'
-import User from '#models/user'
 
 export default defineConfig({
   websocket: {
@@ -12,6 +11,8 @@ export default defineConfig({
       const token = httpContext.request.qs().token
       if (!token) return false
 
+      //model sa importuje az tu, config sa nacitava skor ako zvysok appky
+      const { default: User } = await import('#models/user')
       const accessToken = await User.accessTokens.verify(new Secret(token))
       if (!accessToken) return false
 
