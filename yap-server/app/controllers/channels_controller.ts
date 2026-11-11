@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import Channel from '#models/channel'
 import ChannelMember from '#models/channel_member'
+import User from '#models/user'
 
 //najde moje clenstvo v kanali
 function findMember(channelId: number, userId: number) {
@@ -165,5 +166,74 @@ export default class ChannelsController {
     }
     await channel.delete()
     return { message: `Kanál #${channel.name} bol zrušený.` }
+  }
+
+  //pozvanie do kanala (/invite nick)
+  //private moze iba spravca, public hocijaky clen
+  async invite({ auth, params, request, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const channel = await Channel.findOrFail(params.id)
+    const me = await findMember(channel.id, user.id)
+    if (!me || me.state !== 'joined') {
+      return response.forbidden({ message: 'Nie ste členom tohto kanála.' })
+    }
+
+    const isAdmin = channel.adminId === user.id
+    if (channel.type === 'private' && !isAdmin) {
+      return response.forbidden({ message: 'Do súkromného kanála môže pozývať iba správca.' })
+    }
+
+    const nick = (request.input('nick') || '').toString().trim().replace(/^@/, '')
+    const target = await User.findBy('nick', nick)
+    if (!target) {
+      return response.badRequest({ message: `Používateľ ${nick} neexistuje.` })
+    }
+
+    const member = await findMember(channel.id, target.id)
+
+    //spravca moze zrusit ban
+    if (member && member.state === 'banned') {
+      if (!isAdmin) {
+        return response.forbidden({ message: 'Používateľ má ban. Prístup mu môže obnoviť iba správca.' })
+      }
+      member.state = 'invited'
+      await member.save()
+      return { message: `Ban zrušený. Používateľ @${target.nick} dostal novú pozvánku.` }
+    }
+    if (member && member.state === 'joined') {
+      return response.badRequest({ message: `Používateľ @${target.nick} už je členom kanála.` })
+    }
+    if (member && member.state === 'invited') {
+      return response.badRequest({ message: `Používateľ @${target.nick} už má pozvánku.` })
+    }
+
+    await ChannelMember.create({ channelId: channel.id, userId: target.id, state: 'invited' })
+    return { message: `Používateľ @${target.nick} bol pozvaný do kanála.` }
+  }
+
+  //odobratie z private kanala (/revoke nick), iba spravca
+  async revoke({ auth, params, request, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const channel = await Channel.findOrFail(params.id)
+    if (channel.type !== 'private' || channel.adminId !== user.id) {
+      return response.forbidden({ message: 'Príkaz /revoke môže použiť iba správca v súkromnom kanáli.' })
+    }
+
+    const nick = (request.input('nick') || '').toString().trim().replace(/^@/, '')
+    const target = await User.findBy('nick', nick)
+    if (!target) {
+      return response.badRequest({ message: `Používateľ ${nick} neexistuje.` })
+    }
+    if (target.id === user.id) {
+      return response.badRequest({ message: 'Nemôžete odobrať samého seba.' })
+    }
+
+    const member = await findMember(channel.id, target.id)
+    if (!member) {
+      return response.badRequest({ message: `Používateľ @${target.nick} nie je v tomto kanáli.` })
+    }
+
+    await member.delete()
+    return { message: `Používateľ @${target.nick} bol odobratý z kanála.` }
   }
 }

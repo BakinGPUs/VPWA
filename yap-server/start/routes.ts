@@ -48,6 +48,8 @@ router
     router.post('channels/join', [controllers.Channels, 'join'])
     router.post('channels/:id/leave', [controllers.Channels, 'leave'])
     router.delete('channels/:id', [controllers.Channels, 'destroy'])
+    router.post('channels/:id/invite', [controllers.Channels, 'invite'])
+    router.post('channels/:id/revoke', [controllers.Channels, 'revoke'])
   })
   .prefix('/api/v1')
   .use(middleware.auth())

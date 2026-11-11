@@ -391,48 +391,15 @@ export async function executeCommand (rawText) {
   if (!channel) return { ok: false, message: 'Nie ste v žiadnom kanáli.' }
   if (isInvited(channel.id)) return { ok: false, message: 'V tomto kanáli ste zatiaľ iba pozvaný. Najprv prijmite pozvánku.' }
 
-  if (cmd === '/invite') {
-    if (!arg1) return { ok: false, message: 'Použitie: /invite nickName' }
-    const target = getUserByNick(arg1.replace(/^@/, ''))
-    if (!target) return { ok: false, message: `Používateľ ${arg1} neexistuje.` }
-    if (channel.type === 'private' && !isAdmin) {
-      return { ok: false, message: 'Do súkromného kanála môže pozývať iba správca.' }
+  if (cmd === '/invite' || cmd === '/revoke') {
+    if (!arg1) return { ok: false, message: 'Použitie: ' + cmd + ' nickName' }
+    try {
+      var result = await api('POST', '/channels/' + channel.id + '/' + cmd.substring(1), { nick: arg1 })
+      await loadMembers(channel.id)
+      return { ok: true, message: result.message }
+    } catch (error) {
+      return { ok: false, message: error.message }
     }
-
-    const targetMember = getMember(channel.id, target.id)
-    if (targetMember && targetMember.state === 'banned') {
-      if (!isAdmin) {
-        return { ok: false, message: 'Používateľ má ban. Prístup mu môže obnoviť iba správca.' }
-      }
-      targetMember.state = 'invited'
-      store.kicks = store.kicks.filter(k => !(k.channel === channel.id && k.user === target.id))
-      return { ok: true, message: `Ban zrušený. Používateľovi @${target.nick} bola obnovená pozvánka.` }
-    }
-    if (targetMember && targetMember.state === 'joined') {
-      return { ok: false, message: `Používateľ @${target.nick} už je členom kanála.` }
-    }
-    if (targetMember && targetMember.state === 'invited') {
-      return { ok: false, message: `Používateľ @${target.nick} už má pozvánku.` }
-    }
-
-    store.members.push({ channel: channel.id, user: target.id, state: 'invited' })
-    return { ok: true, message: `Používateľ @${target.nick} bol pozvaný do kanála.` }
-  }
-
-  if (cmd === '/revoke') {
-    if (channel.type !== 'private' || !isAdmin) {
-      return { ok: false, message: 'Príkaz /revoke môže použiť iba správca v súkromnom kanáli.' }
-    }
-    if (!arg1) return { ok: false, message: 'Použitie: /revoke nickName' }
-    const target = getUserByNick(arg1.replace(/^@/, ''))
-    if (!target) return { ok: false, message: `Používateľ ${arg1} neexistuje.` }
-    if (target.id === store.me.id) return { ok: false, message: 'Nemôžete odobrať samého seba.' }
-
-    const targetMember = getMember(channel.id, target.id)
-    if (!targetMember) return { ok: false, message: `Používateľ @${target.nick} nie je v tomto kanáli.` }
-
-    store.members = store.members.filter(m => !(m.channel === channel.id && m.user === target.id))
-    return { ok: true, message: `Používateľ @${target.nick} bol odobratý zo súkromného kanála.` }
   }
 
   if (cmd === '/kick') {
