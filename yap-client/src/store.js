@@ -2,6 +2,7 @@
 
 import { reactive } from 'vue'
 import { api, getToken, setToken } from 'src/api'
+import { connectSocket, disconnectSocket, onEvent } from 'src/socket'
 
 //mock data
 
@@ -38,6 +39,7 @@ export const store = reactive({
   incoming,
   me: null,
   currentChannel: null,
+  lastIncoming: null, //posledna sprava co prisla cez websocket (kvoli notifikaciam)
   onlyMe: false, //notifikacie iba ked ma niekto oznaci
   offlineSince: 0 //kedy sa dal offline, 0 = nie je offline
 })
@@ -116,6 +118,7 @@ function setMe (user, token) {
   store.me.status = 'online'
   store.offlineSince = 0
   store.currentChannel = null
+  connectSocket(token, store.me.id)
 }
 
 export async function login (email, password) {
@@ -167,11 +170,29 @@ export async function logout () {
     await api('POST', '/account/logout')
   } catch (error) {
   }
+  disconnectSocket()
   setToken(null)
   store.me = null
   store.currentChannel = null
   store.offlineSince = 0
 }
+
+//websocket - nova sprava od niekoho ineho
+onEvent('message:new', (data) => {
+  if (!store.me) return
+  var message = addMessage(data)
+  if (!message) return
+  var channel = getChannel(message.channel)
+  if (channel) channel.lastMessage = message.time
+  store.lastIncoming = message
+})
+
+//websocket - zmena kanalov (pozvanka, kick, zrusenie kanala...)
+onEvent('channels:changed', async () => {
+  if (!store.me) return
+  await loadChannels()
+  if (store.currentChannel) await loadMembers(store.currentChannel)
+})
 
 export function setStatus (status) {
   if (!store.me) return

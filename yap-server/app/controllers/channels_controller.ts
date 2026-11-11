@@ -4,6 +4,7 @@ import Channel from '#models/channel'
 import ChannelMember from '#models/channel_member'
 import User from '#models/user'
 import KickVote from '#models/kick_vote'
+import { channelsChanged, channelUserIds } from '#services/notify'
 
 //najde moje clenstvo v kanali
 function findMember(channelId: number, userId: number) {
@@ -73,6 +74,7 @@ export default class ChannelsController {
     }
     member.state = 'joined'
     await member.save()
+    channelsChanged(await channelUserIds(member.channelId))
     return { message: 'Pozvánka prijatá.' }
   }
 
@@ -129,6 +131,7 @@ export default class ChannelsController {
     if (member && member.state === 'invited') {
       member.state = 'joined'
       await member.save()
+      channelsChanged(await channelUserIds(channel.id))
       return { message: `Prijali ste pozvánku do kanála #${name}.`, channelId: channel.id }
     }
     if (channel.type === 'private') {
@@ -137,6 +140,7 @@ export default class ChannelsController {
 
     //public kanal, moze sa pridat hocikto
     await ChannelMember.create({ channelId: channel.id, userId: user.id, state: 'joined' })
+    channelsChanged(await channelUserIds(channel.id))
     return { message: `Pripojili ste sa do kanála #${name}.`, channelId: channel.id }
   }
 
@@ -150,11 +154,14 @@ export default class ChannelsController {
     }
 
     if (channel.adminId === user.id) {
+      const ids = await channelUserIds(channel.id)
       await channel.delete()
+      channelsChanged(ids)
       return { message: `Kanál #${channel.name} zanikol (správca ho opustil).` }
     }
 
     await member.delete()
+    channelsChanged(await channelUserIds(channel.id))
     return { message: `Opustili ste kanál #${channel.name}.` }
   }
 
@@ -165,7 +172,9 @@ export default class ChannelsController {
     if (channel.adminId !== user.id) {
       return response.forbidden({ message: 'Iba správca môže zrušiť kanál.' })
     }
+    const ids = await channelUserIds(channel.id)
     await channel.delete()
+    channelsChanged(ids)
     return { message: `Kanál #${channel.name} bol zrušený.` }
   }
 
@@ -200,6 +209,7 @@ export default class ChannelsController {
       member.state = 'invited'
       await member.save()
       await KickVote.query().where('channelId', channel.id).where('userId', target.id).delete()
+      channelsChanged(await channelUserIds(channel.id))
       return { message: `Ban zrušený. Používateľ @${target.nick} dostal novú pozvánku.` }
     }
     if (member && member.state === 'joined') {
@@ -210,6 +220,7 @@ export default class ChannelsController {
     }
 
     await ChannelMember.create({ channelId: channel.id, userId: target.id, state: 'invited' })
+    channelsChanged(await channelUserIds(channel.id))
     return { message: `Používateľ @${target.nick} bol pozvaný do kanála.` }
   }
 
@@ -236,6 +247,7 @@ export default class ChannelsController {
     }
 
     await member.delete()
+    channelsChanged([target.id, ...(await channelUserIds(channel.id))])
     return { message: `Používateľ @${target.nick} bol odobratý z kanála.` }
   }
 
@@ -274,6 +286,7 @@ export default class ChannelsController {
     if (channel.adminId === user.id) {
       member.state = 'banned'
       await member.save()
+      channelsChanged([target.id, ...(await channelUserIds(channel.id))])
       return { message: `Správca natrvalo zabanoval používateľa @${target.nick}.` }
     }
 
@@ -293,6 +306,7 @@ export default class ChannelsController {
     if (votes.length >= 3) {
       member.state = 'banned'
       await member.save()
+      channelsChanged([target.id, ...(await channelUserIds(channel.id))])
       return { message: `Používateľ @${target.nick} dostal trvalý ban (${votes.length}/3 hlasov).` }
     }
     return { message: `Hlas za vyhodenie @${target.nick} zaznamenaný (${votes.length}/3).` }

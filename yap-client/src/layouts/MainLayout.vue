@@ -493,6 +493,10 @@ export default {
     },
     lastMessageId () {
       this.scrollToBottom()
+    },
+    //sprava cez websocket, mozno treba ukazat notifikaciu
+    'store.lastIncoming' (message) {
+      if (message) this.handleMessageNotification(message)
     }
   },
   created () {
