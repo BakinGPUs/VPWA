@@ -673,12 +673,12 @@ export default {
       done(this.count >= this.messages.length && !this.hasMore)
     },
 
-    submit () {
+    async submit () {
       const text = this.text.trim()
       if (!text) return
 
       if (text.startsWith('/')) {
-        const result = executeCommand(text)
+        const result = await executeCommand(text)
         this.$q.notify({
           message: result.message,
           color: result.ok ? 'positive' : 'negative',
@@ -712,8 +712,8 @@ export default {
       })
     },
 
-    handleCreateChannel () {
-      const err = createChannel(this.newChannelName, this.newChannelIsPrivate)
+    async handleCreateChannel () {
+      const err = await createChannel(this.newChannelName, this.newChannelIsPrivate)
       if (err) {
         this.$q.notify({ message: err, color: 'negative', icon: 'error' })
         return
@@ -731,9 +731,13 @@ export default {
         cancel: { flat: true, label: 'Zrušiť', color: 'grey-4' },
         ok: { flat: true, label: 'Opustiť', color: 'negative' },
         dark: true
-      }).onOk(() => {
-        leaveChannel(this.channel.id)
-        this.$q.notify({ message: 'Kanál bol opustený.', color: 'info' })
+      }).onOk(async () => {
+        try {
+          const message = await leaveChannel(this.channel.id)
+          this.$q.notify({ message: message, color: 'info' })
+        } catch (error) {
+          this.$q.notify({ message: error.message, color: 'negative', icon: 'error' })
+        }
       })
     },
 
@@ -744,9 +748,13 @@ export default {
         cancel: { flat: true, label: 'Späť', color: 'grey-4' },
         ok: { unelevated: true, label: 'Zrušiť kanál', color: 'negative' },
         dark: true
-      }).onOk(() => {
-        deleteChannel(this.channel.id)
-        this.$q.notify({ message: 'Kanál bol zrušený.', color: 'info' })
+      }).onOk(async () => {
+        try {
+          const message = await deleteChannel(this.channel.id)
+          this.$q.notify({ message: message, color: 'info' })
+        } catch (error) {
+          this.$q.notify({ message: error.message, color: 'negative', icon: 'error' })
+        }
       })
     },
 

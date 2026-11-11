@@ -307,53 +307,39 @@ export async function declineInvite (channelId) {
 
 //kanaly a prikazy
 
-export function createChannel (name, isPrivate = false) {
+//novy kanal cez tlacidlo
+export async function createChannel (name, isPrivate = false) {
   name = name.trim().toLowerCase()
   if (!name) return 'Zadajte názov kanála'
-  if (store.channels.some(c => c.name.toLowerCase() === name)) {
-    return 'Kanál s týmto názvom už existuje'
-  }
-  const id = newId()
-  store.channels.push({
-    id,
-    name,
-    type: isPrivate ? 'private' : 'public',
-    admin: store.me.id,
-    lastMessage: Date.now()
-  })
-  store.members.push({ channel: id, user: store.me.id, state: 'joined' })
-  store.currentChannel = id
-  return null
-}
-
-export function deleteChannel (channelId) {
-  store.channels = store.channels.filter(channel => channel.id !== channelId)
-  store.members = store.members.filter(member => member.channel !== channelId)
-  store.messages = store.messages.filter(message => message.channel !== channelId)
-  store.kicks = store.kicks.filter(kick => kick.channel !== channelId)
-  store.typing = store.typing.filter(t => t.channel !== channelId)
-  if (store.currentChannel === channelId) {
-    store.currentChannel = null
+  try {
+    var result = await api('POST', '/channels/join', { name: name, private: isPrivate, create: true })
+    await loadChannels()
+    store.currentChannel = result.channelId
+    return null
+  } catch (error) {
+    return error.message
   }
 }
 
-export function leaveChannel (channelId) {
-  const channel = getChannel(channelId)
-  if (!channel) return
-  if (channel.admin === store.me.id) {
-    deleteChannel(channelId)
-  } else {
-    store.members = store.members.filter(member => !(member.channel === channelId && member.user === store.me.id))
-    if (store.currentChannel === channelId) {
-      store.currentChannel = null
-    }
-  }
+//zrusenie kanala (iba spravca)
+export async function deleteChannel (channelId) {
+  var result = await api('DELETE', '/channels/' + channelId)
+  if (store.currentChannel === channelId) store.currentChannel = null
+  await loadChannels()
+  return result.message
+}
+
+//opustenie kanala, ked som spravca tak kanal zanikne
+export async function leaveChannel (channelId) {
+  var result = await api('POST', '/channels/' + channelId + '/leave')
+  if (store.currentChannel === channelId) store.currentChannel = null
+  await loadChannels()
+  return result.message
 }
 
 //kanal bez spravy 30 dni zanika
 export function removeExpiredChannels () {
-  const expired = store.channels.filter(channel => Date.now() - channel.lastMessage > 30 * DAY)
-  expired.forEach(channel => deleteChannel(channel.id))
+  store.channels = store.channels.filter(channel => Date.now() - channel.lastMessage <= 30 * DAY)
 }
 
 //fake sprava zo servera na test notifikacii
@@ -378,7 +364,7 @@ export function triggerIncomingMessage () {
 }
 
 //prikazy z prikazoveho riadku
-export function executeCommand (rawText) {
+export async function executeCommand (rawText) {
   const parts = rawText.trim().split(/\s+/)
   const cmd = parts[0].toLowerCase()
   const arg1 = parts[1]
@@ -388,45 +374,14 @@ export function executeCommand (rawText) {
 
   if (cmd === '/join') {
     if (!arg1) return { ok: false, message: 'Použitie: /join channelName [private]' }
-    const name = arg1.toLowerCase()
-    const existing = store.channels.find(c => c.name.toLowerCase() === name)
-
-    if (!existing) {
-      const id = newId()
-      const isPrivate = arg2 === 'private'
-      store.channels.push({
-        id,
-        name,
-        type: isPrivate ? 'private' : 'public',
-        admin: store.me.id,
-        lastMessage: Date.now()
-      })
-      store.members.push({ channel: id, user: store.me.id, state: 'joined' })
-      store.currentChannel = id
-      return { ok: true, message: `Kanál #${name} (${isPrivate ? 'private' : 'public'}) bol vytvorený.` }
+    try {
+      var result = await api('POST', '/channels/join', { name: arg1, private: arg2 === 'private' })
+      await loadChannels()
+      store.currentChannel = result.channelId
+      return { ok: true, message: result.message }
+    } catch (error) {
+      return { ok: false, message: error.message }
     }
-
-    const myMembership = getMember(existing.id, store.me.id)
-    if (myMembership && myMembership.state === 'banned') {
-      return { ok: false, message: `V kanáli #${existing.name} máte trvalý ban.` }
-    }
-    if (myMembership && myMembership.state === 'joined') {
-      store.currentChannel = existing.id
-      return { ok: true, message: `Prešli ste do kanála #${existing.name}.` }
-    }
-    if (myMembership && myMembership.state === 'invited') {
-      myMembership.state = 'joined'
-      store.currentChannel = existing.id
-      return { ok: true, message: `Prijali ste pozvánku do kanála #${existing.name}.` }
-    }
-    if (existing.type === 'private') {
-      return { ok: false, message: `Kanál #${existing.name} je súkromný. Pridať vás môže iba správca.` }
-    }
-
-    //public kanal, moze sa pridat hocikto
-    store.members.push({ channel: existing.id, user: store.me.id, state: 'joined' })
-    store.currentChannel = existing.id
-    return { ok: true, message: `Pripojili ste sa do kanála #${existing.name}.` }
   }
 
   if (!channel) return { ok: false, message: 'Nie ste v žiadnom kanáli.' }
@@ -523,19 +478,20 @@ export function executeCommand (rawText) {
   }
 
   if (cmd === '/cancel') {
-    const name = channel.name
-    leaveChannel(channel.id)
-    return {
-      ok: true,
-      message: isAdmin ? `Kanál #${name} zanikol (správca zrušil svoje členstvo).` : `Opustili ste kanál #${name}.`
+    try {
+      return { ok: true, message: await leaveChannel(channel.id) }
+    } catch (error) {
+      return { ok: false, message: error.message }
     }
   }
 
   if (cmd === '/quit') {
     if (!isAdmin) return { ok: false, message: 'Iba správca môže zrušiť kanál príkazom /quit.' }
-    const name = channel.name
-    deleteChannel(channel.id)
-    return { ok: true, message: `Správca zrušil kanál #${name}.` }
+    try {
+      return { ok: true, message: await deleteChannel(channel.id) }
+    } catch (error) {
+      return { ok: false, message: error.message }
+    }
   }
 
   return { ok: false, message: `Neznámy príkaz: ${cmd}` }
