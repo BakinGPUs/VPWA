@@ -17,6 +17,9 @@ export type ScannedRoutes = {
     'channels.join': { paramsTuple?: []; params?: {} }
     'channels.leave': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.invite': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.revoke': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.kick': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
     'profile.profile.show': { paramsTuple?: []; params?: {} }
@@ -39,6 +42,9 @@ export type ScannedRoutes = {
     'channels.decline': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.join': { paramsTuple?: []; params?: {} }
     'channels.leave': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.invite': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.revoke': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'channels.kick': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   DELETE: {
     'channels.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

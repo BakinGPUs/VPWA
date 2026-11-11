@@ -2,6 +2,7 @@
 
 import { reactive } from 'vue'
 import { api, getToken, setToken } from 'src/api'
+import { connectSocket, disconnectSocket, onEvent } from 'src/socket'
 
 //mock data
 
@@ -9,12 +10,6 @@ import { api, getToken, setToken } from 'src/api'
 const users = []
 const channels = []
 const members = []
-
-//kick hlasy - user je koho kickuju, by je kto hlasoval
-const kicks = [
-  { channel: 1, user: 6, by: 2 },
-  { channel: 1, user: 6, by: 3 }
-]
 
 //kto prave pise
 const typing = [
@@ -40,11 +35,11 @@ export const store = reactive({
   channels,
   members,
   messages,
-  kicks,
   typing,
   incoming,
   me: null,
   currentChannel: null,
+  lastIncoming: null, //posledna sprava co prisla cez websocket (kvoli notifikaciam)
   onlyMe: false, //notifikacie iba ked ma niekto oznaci
   offlineSince: 0 //kedy sa dal offline, 0 = nie je offline
 })
@@ -123,6 +118,7 @@ function setMe (user, token) {
   store.me.status = 'online'
   store.offlineSince = 0
   store.currentChannel = null
+  connectSocket(token, store.me.id)
 }
 
 export async function login (email, password) {
@@ -174,11 +170,29 @@ export async function logout () {
     await api('POST', '/account/logout')
   } catch (error) {
   }
+  disconnectSocket()
   setToken(null)
   store.me = null
   store.currentChannel = null
   store.offlineSince = 0
 }
+
+//websocket - nova sprava od niekoho ineho
+onEvent('message:new', (data) => {
+  if (!store.me) return
+  var message = addMessage(data)
+  if (!message) return
+  var channel = getChannel(message.channel)
+  if (channel) channel.lastMessage = message.time
+  store.lastIncoming = message
+})
+
+//websocket - zmena kanalov (pozvanka, kick, zrusenie kanala...)
+onEvent('channels:changed', async () => {
+  if (!store.me) return
+  await loadChannels()
+  if (store.currentChannel) await loadMembers(store.currentChannel)
+})
 
 export function setStatus (status) {
   if (!store.me) return
@@ -391,84 +405,15 @@ export async function executeCommand (rawText) {
   if (!channel) return { ok: false, message: 'Nie ste v žiadnom kanáli.' }
   if (isInvited(channel.id)) return { ok: false, message: 'V tomto kanáli ste zatiaľ iba pozvaný. Najprv prijmite pozvánku.' }
 
-  if (cmd === '/invite') {
-    if (!arg1) return { ok: false, message: 'Použitie: /invite nickName' }
-    const target = getUserByNick(arg1.replace(/^@/, ''))
-    if (!target) return { ok: false, message: `Používateľ ${arg1} neexistuje.` }
-    if (channel.type === 'private' && !isAdmin) {
-      return { ok: false, message: 'Do súkromného kanála môže pozývať iba správca.' }
+  if (cmd === '/invite' || cmd === '/revoke' || cmd === '/kick') {
+    if (!arg1) return { ok: false, message: 'Použitie: ' + cmd + ' nickName' }
+    try {
+      var result = await api('POST', '/channels/' + channel.id + '/' + cmd.substring(1), { nick: arg1 })
+      await loadMembers(channel.id)
+      return { ok: true, message: result.message }
+    } catch (error) {
+      return { ok: false, message: error.message }
     }
-
-    const targetMember = getMember(channel.id, target.id)
-    if (targetMember && targetMember.state === 'banned') {
-      if (!isAdmin) {
-        return { ok: false, message: 'Používateľ má ban. Prístup mu môže obnoviť iba správca.' }
-      }
-      targetMember.state = 'invited'
-      store.kicks = store.kicks.filter(k => !(k.channel === channel.id && k.user === target.id))
-      return { ok: true, message: `Ban zrušený. Používateľovi @${target.nick} bola obnovená pozvánka.` }
-    }
-    if (targetMember && targetMember.state === 'joined') {
-      return { ok: false, message: `Používateľ @${target.nick} už je členom kanála.` }
-    }
-    if (targetMember && targetMember.state === 'invited') {
-      return { ok: false, message: `Používateľ @${target.nick} už má pozvánku.` }
-    }
-
-    store.members.push({ channel: channel.id, user: target.id, state: 'invited' })
-    return { ok: true, message: `Používateľ @${target.nick} bol pozvaný do kanála.` }
-  }
-
-  if (cmd === '/revoke') {
-    if (channel.type !== 'private' || !isAdmin) {
-      return { ok: false, message: 'Príkaz /revoke môže použiť iba správca v súkromnom kanáli.' }
-    }
-    if (!arg1) return { ok: false, message: 'Použitie: /revoke nickName' }
-    const target = getUserByNick(arg1.replace(/^@/, ''))
-    if (!target) return { ok: false, message: `Používateľ ${arg1} neexistuje.` }
-    if (target.id === store.me.id) return { ok: false, message: 'Nemôžete odobrať samého seba.' }
-
-    const targetMember = getMember(channel.id, target.id)
-    if (!targetMember) return { ok: false, message: `Používateľ @${target.nick} nie je v tomto kanáli.` }
-
-    store.members = store.members.filter(m => !(m.channel === channel.id && m.user === target.id))
-    return { ok: true, message: `Používateľ @${target.nick} bol odobratý zo súkromného kanála.` }
-  }
-
-  if (cmd === '/kick') {
-    if (channel.type !== 'public') {
-      return { ok: false, message: 'Príkaz /kick je dostupný iba vo verejných kanáloch.' }
-    }
-    if (!arg1) return { ok: false, message: 'Použitie: /kick nickName' }
-    const target = getUserByNick(arg1.replace(/^@/, ''))
-    if (!target) return { ok: false, message: `Používateľ ${arg1} neexistuje.` }
-    if (target.id === store.me.id) return { ok: false, message: 'Nemôžete vyhodiť samého seba.' }
-    if (target.id === channel.admin) return { ok: false, message: 'Správcu kanála nie je možné vyhodiť.' }
-
-    const targetMember = getMember(channel.id, target.id)
-    if (!targetMember || targetMember.state !== 'joined') {
-      return { ok: false, message: `Používateľ @${target.nick} nie je aktívnym členom kanála.` }
-    }
-
-    if (isAdmin) {
-      targetMember.state = 'banned'
-      return { ok: true, message: `Správca natrvalo zabanoval používateľa @${target.nick}.` }
-    }
-
-    //kazdy moze hlasovat len raz, 3 hlasy = ban
-    const votes = store.kicks.filter(kick => kick.channel === channel.id && kick.user === target.id)
-    if (votes.some(kick => kick.by === store.me.id)) {
-      return { ok: false, message: `Za vyhodenie @${target.nick} ste už hlasovali (${votes.length}/3).` }
-    }
-
-    store.kicks.push({ channel: channel.id, user: target.id, by: store.me.id })
-    const count = votes.length + 1
-
-    if (count >= 3) {
-      targetMember.state = 'banned'
-      return { ok: true, message: `Používateľ @${target.nick} dostal trvalý ban (${count}/3 hlasov).` }
-    }
-    return { ok: true, message: `Hlas za vyhodenie @${target.nick} zaznamenaný (${count}/3).` }
   }
 
   if (cmd === '/list') {

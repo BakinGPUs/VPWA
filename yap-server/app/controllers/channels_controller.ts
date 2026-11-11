@@ -2,6 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import Channel from '#models/channel'
 import ChannelMember from '#models/channel_member'
+import User from '#models/user'
+import KickVote from '#models/kick_vote'
+import { channelsChanged, channelUserIds } from '#services/notify'
 
 //najde moje clenstvo v kanali
 function findMember(channelId: number, userId: number) {
@@ -71,6 +74,7 @@ export default class ChannelsController {
     }
     member.state = 'joined'
     await member.save()
+    channelsChanged(await channelUserIds(member.channelId))
     return { message: 'Pozvánka prijatá.' }
   }
 
@@ -88,7 +92,7 @@ export default class ChannelsController {
   //pridanie do kanala alebo vytvorenie noveho (/join nazov [private])
   async join({ auth, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
-    const name = String(request.input('name', '')).trim().toLowerCase()
+    const name = (request.input('name') || '').toString().trim().toLowerCase()
     const isPrivate = request.input('private') === true
 
     if (!/^[a-z0-9_-]{1,50}$/.test(name)) {
@@ -127,6 +131,7 @@ export default class ChannelsController {
     if (member && member.state === 'invited') {
       member.state = 'joined'
       await member.save()
+      channelsChanged(await channelUserIds(channel.id))
       return { message: `Prijali ste pozvánku do kanála #${name}.`, channelId: channel.id }
     }
     if (channel.type === 'private') {
@@ -135,6 +140,7 @@ export default class ChannelsController {
 
     //public kanal, moze sa pridat hocikto
     await ChannelMember.create({ channelId: channel.id, userId: user.id, state: 'joined' })
+    channelsChanged(await channelUserIds(channel.id))
     return { message: `Pripojili ste sa do kanála #${name}.`, channelId: channel.id }
   }
 
@@ -148,11 +154,14 @@ export default class ChannelsController {
     }
 
     if (channel.adminId === user.id) {
+      const ids = await channelUserIds(channel.id)
       await channel.delete()
+      channelsChanged(ids)
       return { message: `Kanál #${channel.name} zanikol (správca ho opustil).` }
     }
 
     await member.delete()
+    channelsChanged(await channelUserIds(channel.id))
     return { message: `Opustili ste kanál #${channel.name}.` }
   }
 
@@ -163,7 +172,143 @@ export default class ChannelsController {
     if (channel.adminId !== user.id) {
       return response.forbidden({ message: 'Iba správca môže zrušiť kanál.' })
     }
+    const ids = await channelUserIds(channel.id)
     await channel.delete()
+    channelsChanged(ids)
     return { message: `Kanál #${channel.name} bol zrušený.` }
+  }
+
+  //pozvanie do kanala (/invite nick)
+  //private moze iba spravca, public hocijaky clen
+  async invite({ auth, params, request, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const channel = await Channel.findOrFail(params.id)
+    const me = await findMember(channel.id, user.id)
+    if (!me || me.state !== 'joined') {
+      return response.forbidden({ message: 'Nie ste členom tohto kanála.' })
+    }
+
+    const isAdmin = channel.adminId === user.id
+    if (channel.type === 'private' && !isAdmin) {
+      return response.forbidden({ message: 'Do súkromného kanála môže pozývať iba správca.' })
+    }
+
+    const nick = (request.input('nick') || '').toString().trim().replace(/^@/, '')
+    const target = await User.findBy('nick', nick)
+    if (!target) {
+      return response.badRequest({ message: `Používateľ ${nick} neexistuje.` })
+    }
+
+    const member = await findMember(channel.id, target.id)
+
+    //spravca moze zrusit ban
+    if (member && member.state === 'banned') {
+      if (!isAdmin) {
+        return response.forbidden({ message: 'Používateľ má ban. Prístup mu môže obnoviť iba správca.' })
+      }
+      member.state = 'invited'
+      await member.save()
+      await KickVote.query().where('channelId', channel.id).where('userId', target.id).delete()
+      channelsChanged(await channelUserIds(channel.id))
+      return { message: `Ban zrušený. Používateľ @${target.nick} dostal novú pozvánku.` }
+    }
+    if (member && member.state === 'joined') {
+      return response.badRequest({ message: `Používateľ @${target.nick} už je členom kanála.` })
+    }
+    if (member && member.state === 'invited') {
+      return response.badRequest({ message: `Používateľ @${target.nick} už má pozvánku.` })
+    }
+
+    await ChannelMember.create({ channelId: channel.id, userId: target.id, state: 'invited' })
+    channelsChanged(await channelUserIds(channel.id))
+    return { message: `Používateľ @${target.nick} bol pozvaný do kanála.` }
+  }
+
+  //odobratie z private kanala (/revoke nick), iba spravca
+  async revoke({ auth, params, request, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const channel = await Channel.findOrFail(params.id)
+    if (channel.type !== 'private' || channel.adminId !== user.id) {
+      return response.forbidden({ message: 'Príkaz /revoke môže použiť iba správca v súkromnom kanáli.' })
+    }
+
+    const nick = (request.input('nick') || '').toString().trim().replace(/^@/, '')
+    const target = await User.findBy('nick', nick)
+    if (!target) {
+      return response.badRequest({ message: `Používateľ ${nick} neexistuje.` })
+    }
+    if (target.id === user.id) {
+      return response.badRequest({ message: 'Nemôžete odobrať samého seba.' })
+    }
+
+    const member = await findMember(channel.id, target.id)
+    if (!member) {
+      return response.badRequest({ message: `Používateľ @${target.nick} nie je v tomto kanáli.` })
+    }
+
+    await member.delete()
+    channelsChanged([target.id, ...(await channelUserIds(channel.id))])
+    return { message: `Používateľ @${target.nick} bol odobratý z kanála.` }
+  }
+
+  //vyhodenie z public kanala (/kick nick)
+  //spravca da ban hned, inak 3 hlasy od clenov = ban
+  async kick({ auth, params, request, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const channel = await Channel.findOrFail(params.id)
+    if (channel.type !== 'public') {
+      return response.badRequest({ message: 'Príkaz /kick je dostupný iba vo verejných kanáloch.' })
+    }
+
+    const me = await findMember(channel.id, user.id)
+    if (!me || me.state !== 'joined') {
+      return response.forbidden({ message: 'Nie ste členom tohto kanála.' })
+    }
+
+    const nick = (request.input('nick') || '').toString().trim().replace(/^@/, '')
+    const target = await User.findBy('nick', nick)
+    if (!target) {
+      return response.badRequest({ message: `Používateľ ${nick} neexistuje.` })
+    }
+    if (target.id === user.id) {
+      return response.badRequest({ message: 'Nemôžete vyhodiť samého seba.' })
+    }
+    if (target.id === channel.adminId) {
+      return response.badRequest({ message: 'Správcu kanála nie je možné vyhodiť.' })
+    }
+
+    const member = await findMember(channel.id, target.id)
+    if (!member || member.state !== 'joined') {
+      return response.badRequest({ message: `Používateľ @${target.nick} nie je členom kanála.` })
+    }
+
+    //spravca da ban hned
+    if (channel.adminId === user.id) {
+      member.state = 'banned'
+      await member.save()
+      channelsChanged([target.id, ...(await channelUserIds(channel.id))])
+      return { message: `Správca natrvalo zabanoval používateľa @${target.nick}.` }
+    }
+
+    //kazdy moze hlasovat len raz
+    const myVote = await KickVote.query()
+      .where('channelId', channel.id)
+      .where('userId', target.id)
+      .where('voterId', user.id)
+      .first()
+    if (myVote) {
+      return response.badRequest({ message: `Za vyhodenie @${target.nick} ste už hlasovali.` })
+    }
+
+    await KickVote.create({ channelId: channel.id, userId: target.id, voterId: user.id })
+    const votes = await KickVote.query().where('channelId', channel.id).where('userId', target.id)
+
+    if (votes.length >= 3) {
+      member.state = 'banned'
+      await member.save()
+      channelsChanged([target.id, ...(await channelUserIds(channel.id))])
+      return { message: `Používateľ @${target.nick} dostal trvalý ban (${votes.length}/3 hlasov).` }
+    }
+    return { message: `Hlas za vyhodenie @${target.nick} zaznamenaný (${votes.length}/3).` }
   }
 }

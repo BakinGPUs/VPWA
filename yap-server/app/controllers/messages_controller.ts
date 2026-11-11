@@ -4,6 +4,7 @@ import Channel from '#models/channel'
 import ChannelMember from '#models/channel_member'
 import Message from '#models/message'
 import MessageTransformer from '#transformers/message_transformer'
+import { newMessage } from '#services/notify'
 
 export default class MessagesController {
   //spravy kanala po strankach, najnovsie su na 1. strane (kvoli infinite scrollu)
@@ -44,7 +45,7 @@ export default class MessagesController {
       return response.forbidden({ message: 'Nie ste členom tohto kanála.' })
     }
 
-    const text = String(request.input('text', '')).trim()
+    const text = (request.input('text') || '').toString().trim()
     if (!text) {
       return response.badRequest({ message: 'Správa je prázdna.' })
     }
@@ -59,6 +60,7 @@ export default class MessagesController {
     await channel.save()
 
     await message.load('author')
+    await newMessage(message)
     return serialize(MessageTransformer.transform(message))
   }
 }
