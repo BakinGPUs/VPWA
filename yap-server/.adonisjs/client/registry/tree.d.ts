@@ -37,5 +37,6 @@ export interface ApiDefinition {
   }
   settings: {
     status: typeof routes['settings.status']
+    notifications: typeof routes['settings.notifications']
   }
 }

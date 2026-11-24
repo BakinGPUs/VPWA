@@ -11,6 +11,7 @@ export default class UserTransformer extends BaseTransformer<User> {
       'nick',
       'email',
       'status',
+      'notifyOnlyMentions',
       'createdAt',
       'updatedAt',
       'initials',

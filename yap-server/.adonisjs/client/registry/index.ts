@@ -116,6 +116,12 @@ const routes = {
     tokens: [[0,"api"],[0,"v1"],[0,"account"],[0,"status"]],
     types: placeholder as Registry['settings.status']['types'],
   },
+  'settings.notifications': {
+    methods: ["PUT"],
+    pattern: '/api/v1/account/notifications',
+    tokens: [[0,"api"],[0,"v1"],[0,"account"],[0,"notifications"]],
+    types: placeholder as Registry['settings.notifications']['types'],
+  },
 } as const satisfies Record<string, AdonisEndpoint>
 
 export { routes }

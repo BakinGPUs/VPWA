@@ -54,6 +54,7 @@ router
     router.post('channels/:id/kick', [controllers.Channels, 'kick'])
 
     router.put('account/status', [controllers.Settings, 'status'])
+    router.put('account/notifications', [controllers.Settings, 'notifications'])
   })
   .prefix('/api/v1')
   .use(middleware.auth())

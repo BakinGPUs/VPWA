@@ -242,6 +242,19 @@ export interface Registry {
       rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/settings_controller').default['status']>>>
     }
   }
+  'settings.notifications': {
+    methods: ["PUT"]
+    pattern: '/api/v1/account/notifications'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/settings_controller').default['notifications']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/settings_controller').default['notifications']>>>
+      rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/settings_controller').default['notifications']>>>
+    }
+  }
 }
 
 export namespace Route {

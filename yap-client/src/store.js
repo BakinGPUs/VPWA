@@ -114,6 +114,7 @@ function setMe (user, token) {
     store.me = user
   }
   store.me.status = 'online'
+  store.onlyMe = !!user.notifyOnlyMentions
   store.offlineSince = 0
   store.currentChannel = null
   connectSocket(token, store.me.id)
@@ -257,6 +258,25 @@ export function stopTyping (channelId) {
   typingPending = null
   typingLast = { channel: channelId, text: '' }
   api('POST', '/channels/' + channelId + '/typing', { text: '' }).catch(() => {})
+}
+
+//websocket - po vypadku spojenia nacitame vsetko znova, mohli sme nieco zmeskat
+onEvent('reconnect', async () => {
+  if (!store.me) return
+  await loadChannels()
+  if (store.currentChannel) await loadMembers(store.currentChannel)
+  store.refresh++
+})
+
+//nastavenie notifikacii sa ulozi na server
+export async function saveOnlyMe (value) {
+  store.onlyMe = value
+  try {
+    await api('PUT', '/account/notifications', { onlyMentions: value })
+    return null
+  } catch (error) {
+    return error.message
+  }
 }
 
 //websocket - niekto zmenil stav

@@ -15,4 +15,12 @@ export default class SettingsController {
     await statusChanged(user.id, status)
     return { message: 'Stav zmenený.', status: status }
   }
+
+  //notifikacie iba pre spravy adresovane mne (@nick)
+  async notifications({ auth, request }: HttpContext) {
+    const user = auth.getUserOrFail()
+    user.notifyOnlyMentions = request.input('onlyMentions') === true
+    await user.save()
+    return { message: 'Nastavenie uložené.', onlyMentions: user.notifyOnlyMentions }
+  }
 }

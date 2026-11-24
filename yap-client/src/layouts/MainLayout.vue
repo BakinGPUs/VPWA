@@ -152,7 +152,8 @@
         <div class="q-pa-sm notification-settings">
           <div class="text-caption text-amber-5 text-bold q-mb-xs">Nastavenia notifikácií</div>
           <q-toggle
-            v-model="store.onlyMe"
+            :model-value="store.onlyMe"
+            @update:model-value="changeOnlyMe"
             dense
             color="amber-7"
             label="Iba adresované mne (@)"
@@ -425,7 +426,7 @@ import {
   store, getUser, myChannels, isInvited, isMentioned, channelMessages, channelMembers,
   channelTyping, sendMessage, acceptInvite, declineInvite, leaveChannel, deleteChannel,
   createChannel, executeCommand, setStatus, triggerIncomingMessage, logout, loadMessages, loadMembers,
-  sendTyping, stopTyping
+  sendTyping, stopTyping, saveOnlyMe
 } from 'src/store'
 
 const PAGE_SIZE = 20
@@ -561,6 +562,11 @@ export default {
       if (status === 'online') return 'text-positive'
       if (status === 'dnd') return 'text-warning'
       return 'text-grey-6'
+    },
+
+    async changeOnlyMe (value) {
+      const error = await saveOnlyMe(value)
+      if (error) this.$q.notify({ message: error, color: 'negative', icon: 'error' })
     },
 
     async changeStatus (newStatus) {
