@@ -40,6 +40,7 @@ export const store = reactive({
   me: null,
   currentChannel: null,
   lastIncoming: null, //posledna sprava co prisla cez websocket (kvoli notifikaciam)
+  refresh: 0, //ked sa zvysi, layout nacita spravy znova (napr. po prepnuti z offline)
   onlyMe: false, //notifikacie iba ked ma niekto oznaci
   offlineSince: 0 //kedy sa dal offline, 0 = nie je offline
 })
@@ -119,6 +120,8 @@ function setMe (user, token) {
   store.offlineSince = 0
   store.currentChannel = null
   connectSocket(token, store.me.id)
+  //po prihlaseni som online
+  api('PUT', '/account/status', { status: 'online' }).catch(() => {})
 }
 
 export async function login (email, password) {
@@ -167,6 +170,7 @@ export async function restoreSession () {
 
 export async function logout () {
   try {
+    await api('PUT', '/account/status', { status: 'offline' })
     await api('POST', '/account/logout')
   } catch (error) {
   }
@@ -187,6 +191,12 @@ onEvent('message:new', (data) => {
   store.lastIncoming = message
 })
 
+//websocket - niekto zmenil stav
+onEvent('status:changed', (data) => {
+  var user = getUser(data.userId)
+  if (user) user.status = data.status
+})
+
 //websocket - zmena kanalov (pozvanka, kick, zrusenie kanala...)
 onEvent('channels:changed', async () => {
   if (!store.me) return
@@ -194,14 +204,30 @@ onEvent('channels:changed', async () => {
   if (store.currentChannel) await loadMembers(store.currentChannel)
 })
 
-export function setStatus (status) {
-  if (!store.me) return
+//stav sa ulozi na server a ostatni ho hned uvidia
+export async function setStatus (status) {
+  if (!store.me) return null
+  var wasOffline = store.me.status === 'offline'
+  try {
+    await api('PUT', '/account/status', { status: status })
+  } catch (error) {
+    return error.message
+  }
+
   store.me.status = status
   if (status === 'offline') {
     store.offlineSince = Date.now()
   } else {
     store.offlineSince = 0
   }
+
+  //po prepnuti z offline sa kanaly a spravy nacitaju znova
+  if (wasOffline && status !== 'offline') {
+    await loadChannels()
+    if (store.currentChannel) await loadMembers(store.currentChannel)
+    store.refresh++
+  }
+  return null
 }
 
 //nacita 1 stranu sprav kanala zo servera (20 sprav, od najnovsich)
@@ -297,9 +323,10 @@ export async function loadMembers (channelId) {
   store.members = store.members.filter(member => member.channel !== channelId || member.user === store.me.id)
   for (var item of result.data) {
     var user = getUser(item.userId)
-    var data = { id: item.userId, nick: item.nick, firstName: item.firstName, lastName: item.lastName }
+    var data = { id: item.userId, nick: item.nick, firstName: item.firstName, lastName: item.lastName, status: item.status }
+    if (user && user.id === store.me.id) delete data.status
     if (user) Object.assign(user, data)
-    else store.users.push({ ...data, status: item.status })
+    else store.users.push(data)
     if (item.userId !== store.me.id) {
       store.members.push({ channel: channelId, user: item.userId, state: item.state })
     }

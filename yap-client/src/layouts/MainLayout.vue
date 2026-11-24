@@ -494,6 +494,13 @@ export default {
     lastMessageId () {
       this.scrollToBottom()
     },
+    //po prepnuti z offline nacitame spravy znova
+    'store.refresh' () {
+      this.count = PAGE_SIZE
+      this.page = 1
+      this.hasMore = true
+      this.fetchMessages()
+    },
     //sprava cez websocket, mozno treba ukazat notifikaciu
     'store.lastIncoming' (message) {
       if (message) this.handleMessageNotification(message)
@@ -547,8 +554,12 @@ export default {
       return 'text-grey-6'
     },
 
-    changeStatus (newStatus) {
-      setStatus(newStatus)
+    async changeStatus (newStatus) {
+      const error = await setStatus(newStatus)
+      if (error) {
+        this.$q.notify({ message: error, color: 'negative', icon: 'error' })
+        return
+      }
       this.$q.notify({
         message: `Váš stav bol zmenený na ${newStatus.toUpperCase()}`,
         color: this.statusColor(newStatus),

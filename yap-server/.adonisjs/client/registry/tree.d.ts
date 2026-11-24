@@ -34,4 +34,7 @@ export interface ApiDefinition {
     revoke: typeof routes['channels.revoke']
     kick: typeof routes['channels.kick']
   }
+  settings: {
+    status: typeof routes['settings.status']
+  }
 }

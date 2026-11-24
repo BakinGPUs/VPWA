@@ -51,6 +51,8 @@ router
     router.post('channels/:id/invite', [controllers.Channels, 'invite'])
     router.post('channels/:id/revoke', [controllers.Channels, 'revoke'])
     router.post('channels/:id/kick', [controllers.Channels, 'kick'])
+
+    router.put('account/status', [controllers.Settings, 'status'])
   })
   .prefix('/api/v1')
   .use(middleware.auth())
