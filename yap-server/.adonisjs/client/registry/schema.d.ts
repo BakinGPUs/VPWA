@@ -86,6 +86,19 @@ export interface Registry {
       rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/messages_controller').default['store']>>>
     }
   }
+  'messages.typing': {
+    methods: ["POST"]
+    pattern: '/api/v1/channels/:id/typing'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/messages_controller').default['typing']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/messages_controller').default['typing']>>>
+      rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/messages_controller').default['typing']>>>
+    }
+  }
   'channels.index': {
     methods: ["GET","HEAD"]
     pattern: '/api/v1/channels'

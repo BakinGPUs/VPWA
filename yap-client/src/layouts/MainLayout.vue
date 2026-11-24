@@ -386,7 +386,7 @@
     </q-dialog>
 
     <!--nahlad rozpisanej spravy-->
-    <q-dialog v-model="showTypingDialog" @hide="stopTypingSimulation">
+    <q-dialog v-model="showTypingDialog">
       <q-card class="bg-grey-9 text-white" style="min-width: 340px; max-width: 480px; border-radius: 16px; border: 1px solid rgba(251, 191, 36, 0.3)">
         <q-card-section class="row items-center justify-between">
           <div>
@@ -403,7 +403,7 @@
 
         <q-card-section class="q-pt-none">
           <div class="live-preview-box q-pa-md rounded-borders">
-            <span class="preview-text">{{ activePreviewTyper?.text }}</span>
+            <span class="preview-text">{{ previewText }}</span>
             <span class="blinking-cursor">|</span>
           </div>
           <div class="text-caption text-grey-5 q-mt-sm row items-center">
@@ -424,7 +424,8 @@
 import {
   store, getUser, myChannels, isInvited, isMentioned, channelMessages, channelMembers,
   channelTyping, sendMessage, acceptInvite, declineInvite, leaveChannel, deleteChannel,
-  createChannel, executeCommand, setStatus, triggerIncomingMessage, logout, loadMessages, loadMembers
+  createChannel, executeCommand, setStatus, triggerIncomingMessage, logout, loadMessages, loadMembers,
+  sendTyping, stopTyping
 } from 'src/store'
 
 const PAGE_SIZE = 20
@@ -445,7 +446,6 @@ export default {
       newChannelIsPrivate: false,
       showTypingDialog: false,
       activePreviewTyper: null,
-      typingIntervalId: null,
       notificationPermissionNeeded: false
     }
   },
@@ -476,6 +476,13 @@ export default {
     activePreviewUser () {
       return this.activePreviewTyper ? getUser(this.activePreviewTyper.user) : null
     },
+    //rozpisany text, meni sa naziv cez websocket
+    previewText () {
+      const typer = this.activePreviewTyper
+      if (!typer) return ''
+      const entry = store.typing.find(t => t.channel === typer.channel && t.user === typer.user)
+      return entry ? entry.text : '(správa bola odoslaná alebo zmazaná)'
+    },
     membersCountText () {
       return `${this.currentMembers.length} ${this.currentMembers.length === 1 ? 'člen' : (this.currentMembers.length < 5 ? 'členovia' : 'členov')}`
     }
@@ -483,7 +490,8 @@ export default {
   watch: {
     'store.currentChannel': {
       immediate: true,
-      handler () {
+      handler (newChannel, oldChannel) {
+        stopTyping(oldChannel)
         this.count = PAGE_SIZE
         this.page = 1
         this.hasMore = true
@@ -493,6 +501,10 @@ export default {
     },
     lastMessageId () {
       this.scrollToBottom()
+    },
+    //co pisem, vidia ostatni v kanali
+    text (value) {
+      sendTyping(store.currentChannel, value)
     },
     //po prepnuti z offline nacitame spravy znova
     'store.refresh' () {
@@ -512,9 +524,6 @@ export default {
       if (first) store.currentChannel = first.id
     }
     this.checkNotificationPermission()
-  },
-  beforeUnmount () {
-    this.stopTypingSimulation()
   },
   methods: {
     getUser,
@@ -628,37 +637,8 @@ export default {
 
     //nahlad pisania
     openTypingPreview (typer) {
-      this.activePreviewTyper = typer
+      this.activePreviewTyper = { channel: typer.channel, user: typer.user }
       this.showTypingDialog = true
-      this.startTypingSimulation(typer)
-    },
-
-    startTypingSimulation (typer) {
-      this.stopTypingSimulation()
-      const additionalWords = [
-        ' a', ' ešte', ' k', ' tomu', ' som', ' doplnil', ' podporu', ' pre', ' offline', ' režim',
-        ' aj', ' notifikácie', ' podľa', ' zadania', '.'
-      ]
-      let wordIdx = 0
-
-      this.typingIntervalId = setInterval(() => {
-        if (!this.showTypingDialog || !typer) return
-        if (wordIdx < additionalWords.length) {
-          typer.text += additionalWords[wordIdx]
-          wordIdx++
-        } else {
-          //znova od zaciatku
-          typer.text = 'ja si myslím, že ten deadline posunú, ale ešte to neoverili...'
-          wordIdx = 0
-        }
-      }, 350)
-    },
-
-    stopTypingSimulation () {
-      if (this.typingIntervalId) {
-        clearInterval(this.typingIntervalId)
-        this.typingIntervalId = null
-      }
     },
 
     async fetchMessages () {

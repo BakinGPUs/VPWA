@@ -4,7 +4,7 @@ import Channel from '#models/channel'
 import ChannelMember from '#models/channel_member'
 import Message from '#models/message'
 import MessageTransformer from '#transformers/message_transformer'
-import { newMessage } from '#services/notify'
+import { newMessage, typing } from '#services/notify'
 
 export default class MessagesController {
   //spravy kanala po strankach, najnovsie su na 1. strane (kvoli infinite scrollu)
@@ -62,5 +62,22 @@ export default class MessagesController {
     await message.load('author')
     await newMessage(message)
     return serialize(MessageTransformer.transform(message))
+  }
+
+  //kto prave pise, rozpisany text sa posle ostatnym (prazdny text = prestal pisat)
+  async typing({ auth, params, request, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const member = await ChannelMember.query()
+      .where('channelId', params.id)
+      .where('userId', user.id)
+      .where('state', 'joined')
+      .first()
+    if (!member) {
+      return response.forbidden({ message: 'Nie ste členom tohto kanála.' })
+    }
+
+    const text = (request.input('text') || '').toString().substring(0, 2000)
+    await typing(member.channelId, user.id, user.nick, text)
+    return { ok: true }
   }
 }

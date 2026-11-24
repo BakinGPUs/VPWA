@@ -10,6 +10,7 @@ export type ScannedRoutes = {
     'profile.access_tokens.destroy': { paramsTuple?: []; params?: {} }
     'messages.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'messages.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'messages.typing': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.index': { paramsTuple?: []; params?: {} }
     'channels.members': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.accept': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -39,6 +40,7 @@ export type ScannedRoutes = {
     'auth.access_tokens.store': { paramsTuple?: []; params?: {} }
     'profile.access_tokens.destroy': { paramsTuple?: []; params?: {} }
     'messages.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'messages.typing': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.accept': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.decline': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.join': { paramsTuple?: []; params?: {} }

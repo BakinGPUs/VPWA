@@ -11,11 +11,8 @@ const users = []
 const channels = []
 const members = []
 
-//kto prave pise
-const typing = [
-  { channel: 1, user: 2, text: 'ja si myslím, že ten deadline posunú, ale ešte to neoverili...' },
-  { channel: 2, user: 3, text: 'hotovo, nahrala som nový commit' }
-]
+//kto prave pise, chodi cez websocket
+const typing = []
 
 //spravy co pridu po kliknuti na test notifikacie
 const incoming = [
@@ -184,12 +181,83 @@ export async function logout () {
 //websocket - nova sprava od niekoho ineho
 onEvent('message:new', (data) => {
   if (!store.me) return
+  //kto poslal spravu uz nepise
+  removeTyping(data.channelId, data.userId)
   var message = addMessage(data)
   if (!message) return
   var channel = getChannel(message.channel)
   if (channel) channel.lastMessage = message.time
   store.lastIncoming = message
 })
+
+//websocket - niekto pise (prazdny text = prestal)
+onEvent('typing', (data) => {
+  if (!store.me) return
+  if (!data.text) {
+    removeTyping(data.channelId, data.userId)
+    return
+  }
+  if (!getUser(data.userId)) {
+    store.users.push({ id: data.userId, nick: data.nick, status: 'online' })
+  }
+  var entry = store.typing.find(t => t.channel === data.channelId && t.user === data.userId)
+  if (entry) {
+    entry.text = data.text
+    entry.time = Date.now()
+  } else {
+    store.typing.push({ channel: data.channelId, user: data.userId, text: data.text, time: Date.now() })
+  }
+})
+
+function removeTyping (channelId, userId) {
+  store.typing = store.typing.filter(t => !(t.channel === channelId && t.user === userId))
+}
+
+//ked niekto 10s nic nenapisal, zmizne z "pise..."
+setInterval(() => {
+  var old = Date.now() - 10000
+  if (store.typing.some(t => t.time < old)) {
+    store.typing = store.typing.filter(t => t.time >= old)
+  }
+}, 2000)
+
+//moje pisanie posielame na server, najviac raz za 300ms
+var typingTimer = null
+var typingSentAt = 0
+var typingPending = null
+var typingLast = null
+
+export function sendTyping (channelId, text) {
+  if (!channelId || !store.me || store.me.status === 'offline') return
+  //prikazy nikomu neukazujeme
+  if (text.startsWith('/')) text = ''
+  if (typingLast && typingLast.channel === channelId && typingLast.text === text && !typingPending) return
+
+  typingPending = { channel: channelId, text: text }
+  if (typingTimer) return
+  var wait = Math.max(0, 300 - (Date.now() - typingSentAt))
+  typingTimer = setTimeout(flushTyping, wait)
+}
+
+function flushTyping () {
+  typingTimer = null
+  if (!typingPending) return
+  var item = typingPending
+  typingPending = null
+  typingSentAt = Date.now()
+  typingLast = item
+  api('POST', '/channels/' + item.channel + '/typing', { text: item.text }).catch(() => {})
+}
+
+//pri prepnuti kanala, aby som v starom kanali "neostal pisat"
+export function stopTyping (channelId) {
+  if (!channelId || !typingLast || typingLast.channel !== channelId || !typingLast.text) return
+  clearTimeout(typingTimer)
+  typingTimer = null
+  typingPending = null
+  typingLast = { channel: channelId, text: '' }
+  api('POST', '/channels/' + channelId + '/typing', { text: '' }).catch(() => {})
+}
 
 //websocket - niekto zmenil stav
 onEvent('status:changed', (data) => {

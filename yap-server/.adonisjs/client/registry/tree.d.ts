@@ -21,6 +21,7 @@ export interface ApiDefinition {
   messages: {
     index: typeof routes['messages.index']
     store: typeof routes['messages.store']
+    typing: typeof routes['messages.typing']
   }
   channels: {
     index: typeof routes['channels.index']

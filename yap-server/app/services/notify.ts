@@ -43,6 +43,20 @@ export async function newMessage(message: Message) {
   }
 }
 
+//rozpisana sprava, posle sa ostatnym clenom kanala co nie su offline
+export async function typing(channelId: number, userId: number, nick: string | null, text: string) {
+  const members = await ChannelMember.query()
+    .where('channelId', channelId)
+    .where('state', 'joined')
+    .preload('user')
+
+  for (const member of members) {
+    if (member.userId !== userId && member.user.status !== 'offline') {
+      socket.to('users/' + member.userId).emit('typing', { channelId, userId, nick, text })
+    }
+  }
+}
+
 //zmena stavu usera, posle sa vsetkym co su s nim v nejakom kanali
 export async function statusChanged(userId: number, status: string) {
   const mine = await ChannelMember.query().where('userId', userId).where('state', 'joined')
