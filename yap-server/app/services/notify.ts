@@ -20,10 +20,12 @@ export async function channelUserIds(channelId: number) {
 }
 
 //nova sprava pre vsetkych clenov kanala okrem autora
+//offline userom sa sprava neposiela, dotiahnu si ju po prepnuti na online
 export async function newMessage(message: Message) {
   const members = await ChannelMember.query()
     .where('channelId', message.channelId)
     .where('state', 'joined')
+    .preload('user')
 
   const data = {
     id: message.id,
@@ -35,8 +37,23 @@ export async function newMessage(message: Message) {
   }
 
   for (const member of members) {
-    if (member.userId !== message.userId) {
+    if (member.userId !== message.userId && member.user.status !== 'offline') {
       socket.to('users/' + member.userId).emit('message:new', data)
+    }
+  }
+}
+
+//zmena stavu usera, posle sa vsetkym co su s nim v nejakom kanali
+export async function statusChanged(userId: number, status: string) {
+  const mine = await ChannelMember.query().where('userId', userId).where('state', 'joined')
+  const channelIds = mine.map((member) => member.channelId)
+  if (channelIds.length === 0) return
+
+  const others = await ChannelMember.query().whereIn('channelId', channelIds).where('state', 'joined')
+  const ids = new Set(others.map((member) => member.userId))
+  for (const id of ids) {
+    if (id !== userId) {
+      socket.to('users/' + id).emit('status:changed', { userId: userId, status: status })
     }
   }
 }

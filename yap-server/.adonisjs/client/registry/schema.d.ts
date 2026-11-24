@@ -216,6 +216,19 @@ export interface Registry {
       rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/channels_controller').default['kick']>>>
     }
   }
+  'settings.status': {
+    methods: ["PUT"]
+    pattern: '/api/v1/account/status'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/settings_controller').default['status']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/settings_controller').default['status']>>>
+      rawResponse: ExtractRawResponse<Awaited<ReturnType<import('#controllers/settings_controller').default['status']>>>
+    }
+  }
 }
 
 export namespace Route {

@@ -20,6 +20,7 @@ export type ScannedRoutes = {
     'channels.invite': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.revoke': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'channels.kick': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'settings.status': { paramsTuple?: []; params?: {} }
   }
   GET: {
     'profile.profile.show': { paramsTuple?: []; params?: {} }
@@ -48,6 +49,9 @@ export type ScannedRoutes = {
   }
   DELETE: {
     'channels.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+  }
+  PUT: {
+    'settings.status': { paramsTuple?: []; params?: {} }
   }
 }
 declare module '@adonisjs/core/types/http' {
